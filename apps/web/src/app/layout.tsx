@@ -5,8 +5,12 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-inter' });
 
 export const metadata = {
-  title: 'Mickey — Site truth, on schedule.',
-  description: "Proof-of-work, approvals and payroll for India's real-estate contractors.",
+  title: 'Mickey — Proof, not promises.',
+  description:
+    "The proof layer for residential real estate. Every tile, every coat, every fitting — photographed on site, geofenced, approved by four people who put their name on it.",
+  icons: {
+    icon: '/brand/favicon.svg',
+  },
 };
 
 export const viewport = {

@@ -4,7 +4,10 @@
   "version": "0.0.1",
   "packageManager": "pnpm@9.12.0",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
+    "bootstrap": "pnpm install && pnpm infra:up && pnpm wait:pg && pnpm db:push:force && pnpm db:seed",
+    "db:push:force": "pnpm --filter @siteflow/db exec drizzle-kit push --force",
+    "wait:pg": "node -e \"const c=require('child_process');const t=Date.now();while(Date.now()-t<60000){try{c.execSync('docker exec siteflow-pg pg_isready -U siteflow -d siteflow',{stdio:'ignore'});console.log('postgres ready');process.exit(0)}catch{c.execSync('sleep 1')}}console.error('timeout waiting for postgres');process.exit(1)\"",
+    "dev": "concurrently -k -n api,web,field -c yellow,cyan,green \"pnpm --filter @siteflow/api dev\" \"pnpm --filter @siteflow/web dev\" \"pnpm --filter @siteflow/field dev\"",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
@@ -17,6 +20,7 @@
   "devDependencies": {
     "typescript": "^5.6.3",
     "tsx": "^4.19.2",
-    "@types/node": "^22.9.0"
+    "@types/node": "^22.9.0",
+    "concurrently": "^9.0.1"
   }
 }

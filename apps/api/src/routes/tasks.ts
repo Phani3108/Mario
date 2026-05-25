@@ -70,6 +70,28 @@ export async function taskRoutes(app: FastifyInstance) {
     const body = req.body as z.infer<typeof CreateTask>;
     const db = getDb();
 
+    // Validate foreign keys belong to caller's org BEFORE attempting insert,
+    // so the client gets a useful 400 instead of an opaque Drizzle 500.
+    const [site] = await db.select().from(sites).where(eq(sites.id, body.siteId)).limit(1);
+    if (!site || site.orgId !== u.orgId) {
+      return reply.code(400).send({ error: 'siteId does not belong to your organization' });
+    }
+    if (body.assigneeUserId) {
+      const [assignee] = await db.select().from(users).where(eq(users.id, body.assigneeUserId)).limit(1);
+      if (!assignee || assignee.orgId !== u.orgId) {
+        return reply.code(400).send({ error: 'assigneeUserId is not in your organization' });
+      }
+    }
+    if (body.sopProtocolId) {
+      const [sop] = await db.select().from(sopProtocols).where(eq(sopProtocols.id, body.sopProtocolId)).limit(1);
+      if (!sop || sop.orgId !== u.orgId) {
+        return reply.code(400).send({ error: 'sopProtocolId is not in your organization' });
+      }
+    }
+    if (body.plannedStart && body.plannedEnd && new Date(body.plannedStart) >= new Date(body.plannedEnd)) {
+      return reply.code(400).send({ error: 'plannedStart must be before plannedEnd' });
+    }
+
     const initialState: TaskState = body.assigneeUserId ? 'ASSIGNED' : 'DRAFT';
 
     // Quality sampling: 1 in N tasks per (site, trade) gets sampled.

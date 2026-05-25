@@ -2,12 +2,16 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import sensible from '@fastify/sensible';
+import { HeadBucketCommand } from '@aws-sdk/client-s3';
 import {
   validatorCompiler,
   serializerCompiler,
   ZodTypeProvider,
 } from 'fastify-type-provider-zod';
 import { env } from './env';
+import { getDb } from '@siteflow/db';
+import { sql } from 'drizzle-orm';
+import { s3 } from './s3';
 import { authRoutes } from './routes/auth';
 import { taskRoutes } from './routes/tasks';
 import { proofRoutes } from './routes/proofs';
@@ -68,10 +72,30 @@ async function build() {
   return app;
 }
 
-build()
-  .then((app) => app.listen({ port: env.port, host: '0.0.0.0' }))
-  .then((addr) => console.log(`api listening on ${addr}`))
-  .catch((err) => {
-    console.error(err);
+async function checkInfra() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is not set. Did you run from the repo root with the .env loaded? Try: pnpm bootstrap');
+  }
+  try {
+    await getDb().execute(sql`select 1`);
+  } catch (e) {
+    throw new Error(`Postgres is not reachable at ${process.env.DATABASE_URL}. Is docker-compose up? Try: pnpm infra:up`);
+  }
+  try {
+    await s3.send(new HeadBucketCommand({ Bucket: env.s3.bucket }));
+  } catch (e) {
+    throw new Error(`MinIO bucket '${env.s3.bucket}' is not reachable at ${env.s3.endpoint}. Try: pnpm infra:up`);
+  }
+}
+
+(async () => {
+  try {
+    await checkInfra();
+    const app = await build();
+    const addr = await app.listen({ port: env.port, host: '0.0.0.0' });
+    console.log(`api listening on ${addr}`);
+  } catch (err: any) {
+    console.error('\nSTARTUP FAILED:', err.message ?? err, '\n');
     process.exit(1);
-  });
+  }
+})();

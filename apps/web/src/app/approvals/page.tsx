@@ -55,16 +55,8 @@ function fmt(ts: string | null): string {
 
 export default function ApprovalsPage() {
   const router = useRouter();
-  // DEMO: Mock data for all tabs
-  const DEMO = true;
-  const MOCK_TASKS: Task[] = [
-    { id: 't1', title: 'Tile Laying - Lobby', trade: 'Tiling', location: 'Tower A, Lobby', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString() },
-    { id: 't2', title: 'Paint Touchup', trade: 'Painting', location: 'Tower B, 2nd Floor', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString() },
-    { id: 't3', title: 'Plumbing Check', trade: 'Plumbing', location: 'Tower C, Basement', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString() },
-    { id: 't4', title: 'Slab Inspection', trade: 'RCC', location: 'Tower D, Roof', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString() },
-  ];
-  const [tasks, setTasks] = useState<Task[]>(DEMO ? MOCK_TASKS : []);
-  const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [user, setUser] = useState<{ name: string; role: string; siteId: string | null } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [proofUrls, setProofUrls] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -73,11 +65,7 @@ export default function ApprovalsPage() {
   const [mobileNav, setMobileNav] = useState(false);
   const [view, setView] = useState<View>('approvals');
   const [activeSite, setActiveSite] = useState<string>('');
-  const MOCK_SITES: Site[] = [
-    { id: 'site1', label: 'Prestige Downtown', active: true },
-    { id: 'site2', label: 'Uptown Heights', active: false },
-  ];
-  const [sitesList, setSitesList] = useState<Site[]>(DEMO ? MOCK_SITES : []);
+  const [sitesList, setSitesList] = useState<Site[]>([]);
   const [orgInfo, setOrgInfo] = useState<{ name: string; logoUrl: string | null }>({ name: 'Mickey', logoUrl: null });
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('sf_token') : null;
@@ -88,18 +76,36 @@ export default function ApprovalsPage() {
   );
 
   const load = useCallback(async () => {
-    if (DEMO) {
-      setTasks(MOCK_TASKS);
-      setSitesList(MOCK_SITES);
-      setActiveSite(MOCK_SITES[0].id);
-      setOrgInfo({ name: 'Mickey', logoUrl: null });
-      setUser({ name: 'Demo Manager', role: 'manager' });
-      setProofUrls({});
-      return;
-    }
     if (!token) { router.replace('/'); return; }
-    // ...existing code for real API...
-  }, [token, headers, router]);
+    setError(null);
+    try {
+      const cachedUser = JSON.parse(localStorage.getItem('sf_user') ?? 'null');
+      if (cachedUser) setUser(cachedUser);
+
+      const [pendingRes, sitesRes, orgRes] = await Promise.all([
+        fetch(`${API}/approvals/pending`, { headers: headers() }),
+        fetch(`${API}/sites`, { headers: headers() }),
+        fetch(`${API}/orgs/me`, { headers: headers() }),
+      ]);
+      if (pendingRes.status === 401 || sitesRes.status === 401) {
+        localStorage.removeItem('sf_token');
+        router.replace('/');
+        return;
+      }
+      const pendingTasks: Task[] = pendingRes.ok ? await pendingRes.json() : [];
+      const siteRows: { id: string; name: string }[] = sitesRes.ok ? await sitesRes.json() : [];
+      const sitesMapped: Site[] = siteRows.map((s) => ({ id: s.id, label: s.name, active: true }));
+      setTasks(pendingTasks);
+      setSitesList(sitesMapped);
+      if (!activeSite && sitesMapped.length > 0) setActiveSite(sitesMapped[0].id);
+      if (orgRes.ok) {
+        const data: { org: { name: string }; logoUrl: string | null } = await orgRes.json();
+        setOrgInfo({ name: data.org?.name ?? 'Mickey', logoUrl: data.logoUrl ?? null });
+      }
+    } catch (e: any) {
+      setError(e?.message ?? 'failed to load dashboard');
+    }
+  }, [token, headers, router, activeSite]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -190,6 +196,9 @@ export default function ApprovalsPage() {
             <span className="text-slate-300 hidden sm:inline">
               {user ? `${user.name} · ${user.role}` : ''}
             </span>
+            <a href="/settings" className="text-slate-300 hover:text-amber-300 underline text-xs">
+              Settings
+            </a>
             <button onClick={logout} className="text-amber-400 hover:text-amber-300 underline text-xs">
               Sign out
             </button>
@@ -233,12 +242,12 @@ export default function ApprovalsPage() {
             </button>
           ))}
 
-          {/* Themed sidebar art */}
+          {/* Themed sidebar art — dynamic to active project */}
           <div className="mt-auto pt-6">
-            <div className="aspect-video rounded-lg site-photo relative overflow-hidden">
+            <div className="aspect-video rounded-lg project-card relative overflow-hidden border border-slate-800">
               <div className="absolute bottom-2 left-2 right-2 text-[10px] text-white/90 font-semibold tracking-wide drop-shadow">
-                Prestige Tower B<br />
-                <span className="text-amber-300">12.97° N · 77.75° E</span>
+                {sitesList.find((s) => s.id === activeSite)?.label ?? 'No project selected'}<br />
+                <span className="text-amber-300">{sitesList.length} projects · Hyderabad</span>
               </div>
             </div>
           </div>
@@ -299,8 +308,8 @@ export default function ApprovalsPage() {
             <WhatsAppOutbox headers={headers} />
           ) : view !== 'approvals' ? (
             <PlaceholderView view={view} onBack={() => setView('approvals')} />
-          ) : activeSite !== 'prestige' ? (
-            <EmptySite onBack={() => setActiveSite('prestige')} />
+          ) : sitesList.length === 0 ? (
+            <EmptySite onBack={() => setView('sites')} />
           ) : (
           <>
           {/* Filter bar */}
@@ -566,13 +575,13 @@ function EmptySite({ onBack }: { onBack: () => void }) {
   return (
     <div className="p-10 text-center sf-fade-up">
       <div className="mx-auto w-24 h-24 rounded-2xl site-photo grid place-items-center text-4xl mb-4 text-white drop-shadow">◷</div>
-      <div className="text-slate-700 font-semibold">This site isn't onboarded yet.</div>
-      <div className="text-xs text-slate-500 mt-1 mb-4">Demo data is on Prestige Tower B.</div>
+      <div className="text-slate-700 font-semibold">No projects yet.</div>
+      <div className="text-xs text-slate-500 mt-1 mb-4">Add your first project to start logging photo-proof.</div>
       <button
         onClick={onBack}
         className="px-4 py-2 rounded-lg bg-amber-500 text-slate-900 font-bold text-sm hover:bg-amber-400 transition"
       >
-        ← Switch to Prestige Tower B
+        + Add a project
       </button>
     </div>
   );
@@ -589,34 +598,53 @@ type PunchRow = {
 function TasksBoard({
   headers, canAssign,
 }: { headers: () => HeadersInit; canAssign: boolean }) {
-  // DEMO: Mock users and tasks
-  const DEMO = true;
-  const MOCK_USERS = [
-    { id: 'u1', name: 'Alice Worker' },
-    { id: 'u2', name: 'Bob Worker' },
-  ];
-  const MOCK_TASKS = [
-    { id: 't1', title: 'Tile Laying - Lobby', trade: 'Tiling', location: 'Tower A, Lobby', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString(), assigneeUserId: 'u1' },
-    { id: 't2', title: 'Paint Touchup', trade: 'Painting', location: 'Tower B, 2nd Floor', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString(), assigneeUserId: null },
-    { id: 't3', title: 'Plumbing Check', trade: 'Plumbing', location: 'Tower C, Basement', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString(), assigneeUserId: 'u2' },
-  ];
-  const [rows, setRows] = useState<any[]>(DEMO ? MOCK_TASKS : []);
-  const [users, setUsers] = useState<any[]>(DEMO ? MOCK_USERS : []);
+  const [rows, setRows] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [siteId, setSiteId] = useState<string>('');
 
-  // In demo, skip API load
-  useEffect(() => {
-    if (!DEMO) {
-      // ...existing API load code...
+  const load = useCallback(async () => {
+    setErr(null);
+    try {
+      const [tasksRes, usersRes, sitesRes] = await Promise.all([
+        fetch(`${API}/tasks`, { headers: headers() }),
+        fetch(`${API}/users`, { headers: headers() }),
+        fetch(`${API}/sites`, { headers: headers() }),
+      ]);
+      if (tasksRes.ok) setRows(await tasksRes.json());
+      if (usersRes.ok) setUsers(await usersRes.json());
+      if (sitesRes.ok) {
+        const sites: { id: string }[] = await sitesRes.json();
+        if (sites[0]) setSiteId(sites[0].id);
+      }
+    } catch (e: any) {
+      setErr(e?.message ?? 'failed to load tasks');
     }
-  }, []);
+  }, [headers]);
 
-  function assign(taskId: string, assigneeUserId: string | null) {
+  useEffect(() => { load(); }, [load]);
+
+  async function assign(taskId: string, assigneeUserId: string | null) {
     setBusy(taskId);
-    setRows((prev) => prev.map((t) => t.id === taskId ? { ...t, assigneeUserId } : t));
-    setTimeout(() => setBusy(null), 500);
+    setErr(null);
+    const prev = rows;
+    setRows((cur) => cur.map((t) => t.id === taskId ? { ...t, assigneeUserId } : t));
+    try {
+      const res = await fetch(`${API}/tasks/${taskId}/assign`, {
+        method: 'PATCH', headers: headers(),
+        body: JSON.stringify({ assigneeUserId }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'assign failed');
+      const updated = await res.json();
+      setRows((cur) => cur.map((t) => t.id === taskId ? { ...t, ...updated } : t));
+    } catch (e: any) {
+      setErr(e?.message ?? 'assign failed');
+      setRows(prev);
+    } finally {
+      setBusy(null);
+    }
   }
 
   const byAssignee = useMemo(() => {
@@ -690,11 +718,11 @@ function TasksBoard({
         <NewTaskModal
           headers={headers}
           users={users}
-          siteId={rows[0]?.siteId ?? ''}
+          siteId={rows[0]?.siteId ?? siteId}
           onClose={() => setShowNew(false)}
           onCreated={(newTask) => {
             setShowNew(false);
-            setRows((prev) => [...prev, { ...newTask, id: `mock${Date.now()}` }]);
+            setRows((prev) => [newTask, ...prev]);
           }}
         />
       )}
@@ -712,37 +740,80 @@ function NewTaskModal({
   onCreated: (newTask: any) => void;
 }) {
   const [title, setTitle] = useState('');
-  const [trade, setTrade] = useState('tile');
+  const [trade, setTrade] = useState('Tiling');
   const [location, setLocation] = useState('');
   const [assigneeUserId, setAssignee] = useState('');
+  const [sopProtocolId, setSopId] = useState('');
+  const [plannedStart, setPlannedStart] = useState('');
+  const [plannedEnd, setPlannedEnd] = useState('');
+  const [sites, setSites] = useState<{ id: string; name: string }[]>([]);
+  const [sops, setSops] = useState<{ id: string; trade: string; title: string }[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resolvedSiteId, setResolvedSiteId] = useState(siteId);
 
-  // If no siteId came from rows (empty board), pull from the JWT user.
+  // Default planned start to "now rounded to next hour" and end +4h.
   useEffect(() => {
-    if (resolvedSiteId) return;
-    try {
-      const u = JSON.parse(localStorage.getItem('sf_user') ?? '{}');
-      if (u?.siteId) setResolvedSiteId(u.siteId);
-    } catch { /* noop */ }
-  }, [resolvedSiteId]);
+    const now = new Date();
+    now.setMinutes(0, 0, 0); now.setHours(now.getHours() + 1);
+    const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    setPlannedStart(iso(now));
+    const end = new Date(now.getTime() + 4 * 3600_000);
+    setPlannedEnd(iso(end));
+  }, []);
 
-  function submit(e: React.FormEvent) {
+  useEffect(() => {
+    (async () => {
+      const [s, p] = await Promise.all([
+        fetch(`${API}/sites`, { headers: headers() }),
+        fetch(`${API}/sop`,   { headers: headers() }),
+      ]);
+      if (s.ok) {
+        const ss = await s.json();
+        setSites(ss);
+        if (!resolvedSiteId && ss[0]) setResolvedSiteId(ss[0].id);
+      }
+      if (p.ok) setSops(await p.json());
+    })();
+  }, [headers, resolvedSiteId]);
+
+  // Auto-pick SOP whose trade matches the selected trade.
+  useEffect(() => {
+    if (sopProtocolId) return;
+    const match = sops.find((s) => s.trade.toLowerCase() === trade.toLowerCase());
+    if (match) setSopId(match.id);
+  }, [trade, sops, sopProtocolId]);
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!resolvedSiteId) { setErr('pick a project'); return; }
     setBusy(true); setErr(null);
-    // DEMO: Instantly add mock task
-    setTimeout(() => {
-      onCreated({
-        title,
-        trade,
-        location,
-        assigneeUserId: assigneeUserId || null,
-        plannedStart: null, plannedEnd: null, sopProtocolId: null,
-        actualStart: null, actualEnd: null, updatedAt: new Date().toISOString(),
+    try {
+      const res = await fetch(`${API}/tasks`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({
+          siteId: resolvedSiteId,
+          title,
+          trade,
+          location,
+          assigneeUserId: assigneeUserId || null,
+          plannedStart: plannedStart ? new Date(plannedStart).toISOString() : null,
+          plannedEnd:   plannedEnd   ? new Date(plannedEnd).toISOString()   : null,
+          sopProtocolId: sopProtocolId || null,
+        }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `failed (${res.status})`);
+      }
+      const created = await res.json();
+      onCreated(created);
+    } catch (e: any) {
+      setErr(e?.message ?? 'create failed');
+    } finally {
       setBusy(false);
-    }, 500);
+    }
   }
 
   return (
@@ -750,7 +821,7 @@ function NewTaskModal({
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl w-full max-w-md p-5 shadow-2xl sf-fade-up"
+        className="bg-white rounded-2xl w-full max-w-md p-5 shadow-2xl sf-fade-up max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center gap-2 mb-4">
           <div className="w-8 h-8 rounded-md bg-amber-500 grid place-items-center text-slate-900 font-black">+</div>
@@ -758,12 +829,21 @@ function NewTaskModal({
           <button type="button" onClick={onClose} className="ml-auto text-slate-400 text-sm">✕</button>
         </div>
 
+        <label className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Project</label>
+        <select
+          value={resolvedSiteId} onChange={(e) => setResolvedSiteId(e.target.value)}
+          className="w-full mt-1 mb-3 px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white"
+        >
+          <option value="">— pick a project —</option>
+          {sites.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+        </select>
+
         <label className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Title</label>
         <input
           required minLength={2}
           value={title} onChange={(e) => setTitle(e.target.value)}
           className="w-full mt-1 mb-3 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40"
-          placeholder="Lay tiles in Bath 2"
+          placeholder="Vitrified tiling · Living"
         />
 
         <div className="grid grid-cols-2 gap-3">
@@ -773,7 +853,7 @@ function NewTaskModal({
               value={trade} onChange={(e) => setTrade(e.target.value)}
               className="w-full mt-1 mb-3 px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white"
             >
-              {['tile', 'paint', 'plaster', 'bath', 'rcc', 'electrical', 'plumbing'].map((x) => (
+              {['Tiling', 'Painting', 'Plastering', 'Marble', 'RCC', 'Electrical', 'Plumbing'].map((x) => (
                 <option key={x} value={x}>{x}</option>
               ))}
             </select>
@@ -783,10 +863,32 @@ function NewTaskModal({
             <input
               required value={location} onChange={(e) => setLocation(e.target.value)}
               className="w-full mt-1 mb-3 px-3 py-2 rounded-lg border border-slate-200 text-sm"
-              placeholder="B2-F7-Bath 2"
+              placeholder="T4-F12-Bath 2"
             />
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Planned start</label>
+            <input type="datetime-local" value={plannedStart} onChange={(e) => setPlannedStart(e.target.value)}
+              className="w-full mt-1 mb-3 px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+          </div>
+          <div>
+            <label className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Planned end</label>
+            <input type="datetime-local" value={plannedEnd} onChange={(e) => setPlannedEnd(e.target.value)}
+              className="w-full mt-1 mb-3 px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+          </div>
+        </div>
+
+        <label className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">SOP protocol</label>
+        <select
+          value={sopProtocolId} onChange={(e) => setSopId(e.target.value)}
+          className="w-full mt-1 mb-3 px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white"
+        >
+          <option value="">— no SOP —</option>
+          {sops.map((s) => (<option key={s.id} value={s.id}>{s.trade} · {s.title}</option>))}
+        </select>
 
         <label className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Assignee (optional)</label>
         <select
@@ -794,7 +896,7 @@ function NewTaskModal({
           className="w-full mt-1 mb-4 px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white"
         >
           <option value="">— leave unassigned —</option>
-          {users.map((u) => (<option key={u.id} value={u.id}>{u.name}</option>))}
+          {users.map((u) => (<option key={u.id} value={u.id}>{u.name}{u.role ? ` · ${u.role}` : ''}</option>))}
         </select>
 
         {err && <div className="mb-3 p-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">{err}</div>}

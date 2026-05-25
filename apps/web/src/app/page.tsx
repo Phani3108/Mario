@@ -112,35 +112,40 @@ export default function LoginPage() {
 
       {/* Hero + login */}
       <section className="relative z-10 max-w-6xl mx-auto px-5 py-10 md:py-16 grid md:grid-cols-2 gap-10 items-center">
-        {/* Left — crisp hero copy */}
+        {/* Left — crisp hero copy in the Ogilvy voice */}
         <div className="sf-fade-up">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-bold tracking-[0.22em] mb-5">
             <span className="relative flex w-2 h-2">
               <span className="absolute inset-0 rounded-full bg-amber-400 sf-pulse-ring" />
               <span className="relative inline-flex rounded-full w-2 h-2 bg-amber-400" />
             </span>
-            REAL-TIME · PHOTO-VERIFIED
+            PROOF, NOT PROMISES.
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight text-slate-100">
-            Proof of work.<br />
-            <span className="text-amber-400">On schedule.</span>
+          <h1 className="font-serif text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.05] text-slate-100">
+            A flat takes a year to build.<br />
+            <span className="text-amber-400">About four minutes to inspect.</span><br />
+            We changed the math.
           </h1>
-          <p className="mt-5 text-slate-300 text-base md:text-lg max-w-md">
-            Every task ends with a photo. Geotagged. Timestamped. Four approvals. Payroll that matches reality.
+          <p className="mt-5 text-slate-300 text-base md:text-lg max-w-md leading-relaxed">
+            Mickey is the proof layer for residential real estate. Every tile, every coat,
+            every fitting — photographed on site, geofenced to the square metre, approved
+            by four people who put their name on it. <span className="text-slate-100 font-semibold">Add a project in a minute. Add a tower in five.</span>
           </p>
-          <div className="mt-7 grid grid-cols-3 gap-3 max-w-md">
-            {[
-              { v: '14', l: 'photos per flat' },
-              { v: '150m', l: 'geofence' },
-              { v: '4', l: 'approvers' },
-            ].map((s, i) => (
-              <div key={s.l} className="sf-fade-up rounded-xl bg-slate-900/60 border border-slate-700/60 p-3" style={{ animationDelay: `${0.2 + i * 0.1}s` }}>
-                <div className="text-2xl font-extrabold text-amber-400">{s.v}</div>
-                <div className="text-[10px] uppercase tracking-wider text-slate-400">{s.l}</div>
-              </div>
-            ))}
+          <div className="mt-7 flex flex-wrap gap-3">
+            <a
+              href="/onboard"
+              className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold tracking-wide shadow-lg shadow-amber-500/20 transition"
+            >
+              + Add a project →
+            </a>
+            <a
+              href="#how"
+              className="px-5 py-3 rounded-xl border border-slate-700 text-slate-200 font-semibold hover:border-amber-400/60 hover:text-amber-300 transition"
+            >
+              How it works
+            </a>
           </div>
-          <div className="mt-7 h-2 rounded-full overflow-hidden hi-vis-stripes opacity-60 max-w-md" />
+          <div className="mt-8 h-2 rounded-full overflow-hidden hi-vis-stripes opacity-60 max-w-md" />
         </div>
 
         {/* Right — login card */}
@@ -259,19 +264,54 @@ export default function LoginPage() {
         </div>
       </section>
 
-      {/* Bottom: approval chain, crisp */}
-      <section className="relative z-10 max-w-6xl mx-auto px-5 pb-14">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-slate-500 mb-2">Approval chain</div>
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          {['Worker', 'Supervisor', 'Quality', 'Manager', 'Client'].map((s, i, a) => (
-            <div key={s} className="flex items-center gap-2 sf-fade-up" style={{ animationDelay: `${0.3 + i * 0.08}s` }}>
-              <span className="px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-200 font-semibold">{s}</span>
-              {i < a.length - 1 && <span className="text-amber-500/60">›</span>}
-            </div>
+      {/* Three Ogilvy "reasons to believe" — long-copy cards under the fold */}
+      <section id="how" className="relative z-10 max-w-6xl mx-auto px-5 py-14 border-t border-white/5">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-amber-300/80 mb-3 font-bold">Why developers switch to Mickey</div>
+        <div className="grid md:grid-cols-3 gap-5">
+          {[
+            {
+              title: 'The photograph that doesn’t lie.',
+              body: 'Every proof is watermarked client-side with task ID, GPS, and timestamp before it leaves the worker’s phone. By the time it reaches your dashboard, it’s already too honest to argue with.',
+              icon: '▣',
+            },
+            {
+              title: 'Four signatures. Four levels of conscience.',
+              body: 'Supervisor, Quality, Manager, Client. Each one signs with their name. After three rejections, the task escalates automatically. Defects don’t walk past four people — and they don’t reach the handover.',
+              icon: '✔',
+            },
+            {
+              title: 'Payroll that matches reality.',
+              body: 'Hours billed are hours photographed on site. Inside the geofence, or you don’t get the minute. The math at the end of the month is the same math the foreman saw at the end of the day.',
+              icon: '₹',
+            },
+          ].map((card, i) => (
+            <article
+              key={card.title}
+              className="sf-fade-up rounded-2xl bg-slate-900/70 border border-slate-700/60 p-5 hover:border-amber-400/40 transition"
+              style={{ animationDelay: `${0.1 + i * 0.08}s` }}
+            >
+              <div className="text-2xl text-amber-400/90 mb-2">{card.icon}</div>
+              <div className="font-serif text-lg font-extrabold text-slate-100 leading-tight mb-2">{card.title}</div>
+              <p className="text-sm text-slate-300 leading-relaxed">{card.body}</p>
+            </article>
           ))}
         </div>
-        <div className="mt-6 text-[13px] text-slate-400 max-w-xl">
-          First 50 tasks and 14 days free. ₹49/worker/month after.
+
+        <div className="mt-10 flex flex-wrap items-end justify-between gap-6 pt-8 border-t border-white/5">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.3em] text-slate-500 mb-2">The chain</div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {['Worker', 'Supervisor', 'Quality', 'Manager', 'Client'].map((s, i, a) => (
+                <div key={s} className="flex items-center gap-2 sf-fade-up" style={{ animationDelay: `${0.3 + i * 0.08}s` }}>
+                  <span className="px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-200 font-semibold">{s}</span>
+                  {i < a.length - 1 && <span className="text-amber-500/60">›</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="text-[13px] text-slate-400 max-w-xs">
+            First 50 tasks and 14 days free. ₹49 per worker per month after that. No demo seats, no annual contracts.
+          </div>
         </div>
       </section>
     </main>

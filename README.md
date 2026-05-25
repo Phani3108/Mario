@@ -1,112 +1,177 @@
+# Mickey — Proof, not promises.
 
-# 🏗️ Mickey — Site Truth, On Schedule
+> A flat takes a year to build. About four minutes to inspect. We changed the math.
 
-A real-estate fieldwork platform for photo-verified, geotagged, and timestamped task approvals. Built for India’s contractors, supervisors, and clients.
+Mickey is the **proof layer for residential real estate.** Every tile, every coat, every fitting — photographed on site, geofenced to the square metre, approved by four people who put their name on it. The result is buildings clients trust on the day they hand over keys.
 
-## ✨ Features
-
-- 📸 **Photo Proof** — Every task ends with a photo, geotagged and timestamped
-- 🗺️ **Geofence** — Only approve work on-site (150m radius)
-- 👷 **Four-Step Approval** — Worker → Supervisor → Quality → Manager (→ Client)
-- 🏢 **Org Branding** — Custom logo, color, and city for each org
-- 🔒 **OTP Login** — Secure, passwordless sign-in (WhatsApp/SMS)
-- 🏗️ **Sites & Teams** — Manage multiple sites, invite your team
-- 🆓 **Free Trial** — First 50 tasks and 14 days free
-- 💸 **Simple Pricing** — ₹49/worker/month after trial
-
-## 🚀 Quick Start (Dev)
-
-```sh
-# Clone & install
-pnpm install
-
-# Start all apps (in separate terminals)
-pnpm --filter @siteflow/api dev
-pnpm --filter @siteflow/web dev
-pnpm --filter @siteflow/field dev
-
-# Seed database (if needed)
-cd packages/db
-pnpm exec drizzle-kit push --force
-DATABASE_URL=postgres://siteflow:siteflow@localhost:5433/siteflow pnpm exec tsx src/seed.ts
-```
-
-- Web: [http://localhost:3000](http://localhost:3000)
-- Field: [http://localhost:5174](http://localhost:5174)
-- API: [http://localhost:4000](http://localhost:4000)
-
-## 🏢 Monorepo Structure
-
-- `apps/web` — Next.js 15, React 19, Tailwind (main landing, approvals, onboarding)
-- `apps/field` — Vite, React 19 PWA (field worker app)
-- `apps/api` — Fastify 5, Zod, Drizzle ORM (API server)
-- `packages/db` — Drizzle schema, seed, migrations
-- `packages/shared` — Shared types, schemas
-
-## 🛠️ Tech
-
-- TypeScript strict, pnpm, Node 22
-- Postgres, MinIO (object store)
-- MSG91 (OTP/WhatsApp, dev fallback to console)
-- Mobile-first, PWA-ready
-
-## 👤 Authors
-
-- [@Phani3108](https://github.com/Phani3108)
+Launch market: **Hyderabad.** Expandable to any developer in any city.
 
 ---
 
-> Built in Bengaluru for the people who actually build Bengaluru.
+## Why developers switch to Mickey
 
-| Role | Login |
+| | |
 |---|---|
-| Worker | `+919000000001` |
-| Worker | `+919000000002` |
-| Supervisor | `+919000000010` |
-| Quality | `quality@siteflow.local` |
-| Manager | `manager@siteflow.local` |
-| Client | `client@siteflow.local` |
-| CEO | `ceo@siteflow.local` |
-| Accounts | `accounts@siteflow.local` |
+| **The photograph that doesn't lie.** | Every proof is watermarked client-side with task ID, GPS, and timestamp **before** it leaves the worker's phone. By the time it reaches your dashboard, it's already too honest to argue with. |
+| **Four signatures. Four levels of conscience.** | Supervisor → Quality → Manager → Client. Each one signs with their name. After three rejections, the task escalates automatically. Defects don't walk past four people. |
+| **Payroll that matches reality.** | Hours billed are hours photographed on site. Inside the geofence, or you don't get the minute. The math at the end of the month is the math the foreman saw at the end of the day. |
 
-### Full end-to-end loop to demo
+---
 
-1. **Field**: open <http://localhost:5174>, sign in as worker `+919000000001`.
-2. Tap **▶ START** on the "Tile · Bath 2" task. Allow location when prompted.
-3. Tap **📷 SUBMIT PROOF**. Allow camera. Aim, hit the amber shutter. (Photo is watermarked
-   with task ID + GPS + timestamp before upload.)
-4. **Web**: open <http://localhost:3000>, sign in as supervisor `+919000000010`
-   (the web login accepts phone or email). Click **Approve** on the row.
-5. Sign out, sign back in as `quality@siteflow.local` → approve → again as
-   `manager@siteflow.local` → approve → finally `client@siteflow.local` →
-   approve. The task is now `CLOSED` and disappears from every queue.
+## What's in the box
 
-> Geofence check uses the site coordinates seeded for Prestige Tower B (Bengaluru
-> 12.9698, 77.7499). If you're not in Bengaluru, the proof still uploads but is flagged
-> as outside the fence; you'll see this in the UI message and in the `audit_events` table.
+- 📸 **Photo proof** — capture, blur-check, GPS+timestamp watermark, presigned S3 upload
+- 🗺️ **Geofence (150 m default, per-site override)** — haversine distance computed server-side
+- ✅ **Four-step approval state machine** with auto-skip for non-sampled quality and auto-escalation on three rejects
+- 🏢 **Org branding** — logo upload, accent colour, primary city, currency, geofence default
+- 🧑‍🔧 **Sites & crews** — N projects per org, supervisor + workers per site, desk roles (quality / manager / client / CEO / accounts)
+- 📋 **SOP library** — six trades pre-seeded with instructions, required tests, sample rate
+- ⏱️ **Timesheets** — punch in/out with selfie and GPS, lunch breaks, geofence flag
+- 💰 **Finance** — contracts, hourly cost-rates per role, site P&L, payroll CSV export
+- 📤 **WhatsApp outbox** — every task notification logged (MSG91 wire-in stubbed for dev)
+- 🔐 **OTP signup + dev-login bypass** — real MSG91 path exists; dev mode prints code to console
 
-## Layout
+---
+
+## 🚀 Quick start (one command)
+
+```sh
+# Requires: Node 22, pnpm 9, Docker Desktop
+git clone https://github.com/Phani3108/Mickey
+cd Mickey/siteflow
+cp .env.example .env
+
+pnpm bootstrap        # installs deps, brings up Postgres + MinIO, pushes schema, seeds demo data
+pnpm dev              # starts api + web + field with prefixed logs
+```
+
+Then open:
+
+| App   | URL                       | What's there                         |
+|-------|---------------------------|--------------------------------------|
+| Web   | http://localhost:3000     | Landing + onboard + desk dashboard   |
+| Field | http://localhost:5174     | Worker / supervisor PWA              |
+| API   | http://localhost:4000     | Fastify + Drizzle                    |
+| MinIO | http://localhost:9001     | S3 console (`siteflow` / `siteflowsecret`) |
+
+**API readiness gate:** the API hard-fails at boot if Postgres or MinIO is unreachable, with a one-line "try `pnpm infra:up`" hint. No more silent `Failed to fetch`.
+
+---
+
+## 🔐 Dev sign-in (no OTP needed)
+
+`DEV_AUTH=true` in `.env` enables a dev login that accepts any seeded account with `devCode: '000000'`. The web landing page shows preset buttons for the four desk roles; for worker/supervisor use the field PWA at `:5174`.
+
+| Role        | Login                       | Site                              |
+|-------------|-----------------------------|-----------------------------------|
+| Worker      | `+919000000111` (R. Kumar)  | My Home Bhooja – Tower 4          |
+| Worker      | `+919000000131` (J. Rao)    | Rajapushpa Atria – Phase 2        |
+| Supervisor  | `+919000000110` (P. Singh)  | My Home Bhooja – Tower 4          |
+| Supervisor  | `+919000000140` (H. Iyer)   | Prestige High Fields – Tower 6    |
+| Quality     | `quality@siteflow.local`    | (org-wide)                        |
+| Manager     | `manager@siteflow.local`    | (org-wide)                        |
+| Client      | `client@siteflow.local`     | (org-wide)                        |
+| CEO         | `ceo@siteflow.local`        | (org-wide)                        |
+| Accounts    | `accounts@siteflow.local`   | (org-wide)                        |
+
+Set `DEV_AUTH=false` to lock the door and require the real MSG91 OTP path.
+
+---
+
+## 🌆 Seeded projects (Hyderabad)
+
+One org — **Sunrise Builders Pvt Ltd** — across five real Hyderabad residential developments. Each is geofenced to its actual neighbourhood:
+
+| Project                                | Neighbourhood   | Lat, Lng              | Crew (1 sup + 3 workers) | Tasks |
+|----------------------------------------|-----------------|-----------------------|--------------------------|-------|
+| My Home Bhooja – Tower 4               | Hitech City     | 17.4474, 78.3762      | P. Singh + 3             | 7     |
+| Aparna Sarovar Zenith – Block B        | Nallagandla     | 17.4732, 78.3142      | V. Reddy + 3             | 6     |
+| Rajapushpa Atria – Phase 2             | Kokapet         | 17.4126, 78.3343      | K. Murthy + 3            | 7     |
+| Prestige High Fields – Tower 6         | Gachibowli      | 17.4401, 78.3489      | H. Iyer + 3              | 8     |
+| Sumadhura Acropolis – Penthouse Block  | Gachibowli      | 17.4378, 78.3520      | D. Pillai + 3            | 6     |
+
+Tasks span the full state machine (`DRAFT`, `ASSIGNED`, `IN_PROGRESS`, `PROOF_SUBMITTED`, `REWORK`, `MANAGER_APPROVED`, `CLOSED`) so every dashboard view has data on day one.
+
+---
+
+## 🧪 End-to-end demo loop
+
+1. **Web**: open <http://localhost:3000>, click **Supervisor** on the login card → lands on dashboard, sees **My Home Bhooja – Tower 4** in the sidebar.
+2. **Field**: open <http://localhost:5174>, dev-login as worker `+919000000111`. Tap **▶ START** on an `IN_PROGRESS` task. Allow geolocation when prompted.
+3. Tap **📷 SUBMIT PROOF**, allow camera, capture a frame. (Desktop webcams work too — the proof is watermarked with task ID + GPS + timestamp before upload.)
+4. **Web → Approval queue** as `+919000000110` (supervisor) → click ✓ → state advances to `SUPERVISOR_APPROVED`.
+5. Sign out → sign in as `quality@siteflow.local` → approve → as `manager@siteflow.local` → approve → as `client@siteflow.local` → approve. State: `CLOSED`.
+6. **+ New task** from the **Tasks** tab — pick a project, trade, date range, optional SOP and assignee. The new task appears in the supervisor's queue once the assignee submits proof.
+
+> Geofence note: when running locally with no GPS, the proof still uploads but is flagged `insideGeofence=false` and surfaced as ⚠ in the timesheet view. The hardware check is sound; only the demo's GPS is fake.
+
+---
+
+## 🏢 Monorepo layout
 
 ```
 siteflow/
 ├── apps/
-│   ├── api/         Fastify backend (auth, tasks, proofs, approvals, S3 presign)
-│   ├── field/       Vite + React PWA (worker / supervisor)
-│   └── web/         Next.js 15 dashboard (quality / manager / client)
+│   ├── api/         Fastify 5 + Zod + Drizzle  (port 4000)
+│   ├── web/         Next.js 15 + Tailwind      (port 3000)
+│   └── field/       Vite + React PWA           (port 5174)
 ├── packages/
-│   ├── db/          Drizzle schema + seed
-│   └── shared/      Zod schemas, roles, task state machine, geo math
-├── docker-compose.yml
+│   ├── db/          Drizzle schema + seed (Hyderabad demo)
+│   └── shared/      Zod, roles, task state machine, geo helpers
+├── docker-compose.yml   Postgres + Redis + MinIO + bucket bootstrap
 └── .env.example
 ```
 
-## Next milestones (in order)
+---
 
-1. **Auth swap**: real MSG91 OTP behind the existing `/auth/login` shape.
-2. **Bulk approve + reject reason picker** on the web dashboard.
-3. **Quality SOP** model + seed for top 10 trades + side panel on approval row.
-4. **Client portal** route (`/client`) with read-only milestone view + acknowledge button.
-5. **Temporal**: lift the state-machine call sites into `taskLifecycle.workflow.ts` and add
-   the 4h escalation timer + delegation.
-6. **Offline queue** on field PWA using IndexedDB + Background Sync.
-7. **Terraform** for AWS Mumbai (RDS, ECS Fargate for api+temporal, S3+CloudFront).
+## 🛠️ Stack
+
+- **Language:** TypeScript strict throughout
+- **Runtime:** Node 22, pnpm 9 workspaces
+- **API:** Fastify 5, `@fastify/jwt`, `@fastify/cors`, `fastify-type-provider-zod`
+- **DB:** Postgres 16, Drizzle ORM, `drizzle-kit push` (no migration drift in dev)
+- **Object store:** MinIO (S3-compatible) for proofs, selfies, org logos, SOP reference media
+- **Frontend:** Next.js 15 App Router, Tailwind 3 with the `mickey.*` palette, Source Serif Pro for Ogilvy long-copy
+- **Field:** Vite + React PWA, IndexedDB offline queue, geolocation + camera + watermark client-side
+- **Notifications:** MSG91 (OTP + WhatsApp) — real call when keys set, console fallback otherwise
+
+---
+
+## 🎨 Brand
+
+The Mickey mark is a builder's **"M"** — two plumb-strings for the verticals, a spirit level across the top with a centered bubble, plumb-bobs at the base. Slate + saffron — the colours of a confident Indian real-estate brand. The favicon and dashboard logo live in `apps/web/src/components/MickeyLogo.tsx` and `apps/web/public/brand/favicon.svg`.
+
+---
+
+## ⚙️ Useful scripts
+
+```sh
+pnpm bootstrap      # full reset: deps + docker + schema + seed
+pnpm dev            # api + web + field, prefixed logs
+pnpm infra:up       # just docker (Postgres + MinIO + Redis)
+pnpm infra:down     # stop docker services
+pnpm db:push:force  # push schema (drops conflicts — dev only)
+pnpm db:seed        # re-run the Hyderabad seed (idempotent)
+pnpm typecheck      # tsc --noEmit across all workspaces
+pnpm build          # production build of all packages
+```
+
+---
+
+## 🛣️ Production readiness — what's deferred
+
+Local dev is bulletproof. Before shipping to a real cloud, wire these in:
+
+1. **MSG91** — set `MSG91_AUTH_KEY` + `MSG91_OTP_TEMPLATE_ID` in env, flip `DEV_AUTH=false`.
+2. **JWT rotation** — replace the default `JWT_SECRET`; fail-fast in non-dev if still the default.
+3. **Rate limit `/auth/otp/*`** — add `@fastify/rate-limit` to defend against OTP spam.
+4. **Dockerfile** for `apps/api` (web is a Next.js standalone build; field is a Vite static bundle).
+5. **Deploy target** — Render / Fly / Railway for the API; Vercel for web; CloudFront + S3 for field PWA.
+6. **CORS** — set `API_CORS_ORIGINS` to your deployed web + field origins.
+7. **Backups** — managed Postgres (RDS / Neon / Supabase) with PITR; lifecycle policy on the proof bucket.
+
+---
+
+## 👤 Author
+
+[@Phani3108](https://github.com/Phani3108) — built for the people who actually build Indian cities.
