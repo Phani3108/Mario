@@ -9,6 +9,7 @@ import { QualityView } from './QualityView';
 import { SupervisorView } from './SupervisorView';
 import { ManagerView } from './ManagerView';
 import { CEOView } from './CEOView';
+import { AccountsView } from './AccountsView';
 
 type Task = {
   id: string;
@@ -31,6 +32,7 @@ type ProofView = { url: string };
 const NAV: { key: View; labelKey: string }[] = [
   { key: 'my-tasks',   labelKey: 'navMyTasks' },
   { key: 'command',    labelKey: 'mgrTitle' },
+  { key: 'payroll',    labelKey: 'navPayroll' },
   { key: 'approvals',  labelKey: 'navApprovals' },
   { key: 'tasks',      labelKey: 'navTasks' },
   { key: 'timesheets', labelKey: 'navTimesheets' },
@@ -42,7 +44,7 @@ const NAV: { key: View; labelKey: string }[] = [
   { key: 'outbox',     labelKey: 'navOutbox' },
 ];
 
-type View = 'my-tasks' | 'command' | 'approvals' | 'tasks' | 'timesheets' | 'sop' | 'rework' | 'reports' | 'sites' | 'people' | 'outbox';
+type View = 'my-tasks' | 'command' | 'payroll' | 'approvals' | 'tasks' | 'timesheets' | 'sop' | 'rework' | 'reports' | 'sites' | 'people' | 'outbox';
 type Site = { id: string; label: string; active: boolean };
 
 // Per-persona sidebar. Ordered: first entry is also the persona's default view
@@ -52,9 +54,9 @@ const ROLE_NAV: Record<string, View[]> = {
   employee:   ['my-tasks'],
   supervisor: ['approvals', 'tasks', 'timesheets', 'people', 'rework'],
   quality:    ['approvals', 'sop', 'rework', 'tasks'],
-  manager:    ['command', 'approvals', 'tasks', 'timesheets', 'sop', 'rework', 'reports', 'sites', 'people', 'outbox'],
-  accounts:   ['timesheets', 'reports', 'outbox'],
-  ceo:        ['command', 'reports', 'sites', 'people', 'outbox', 'tasks', 'approvals'],
+  manager:    ['command', 'approvals', 'tasks', 'timesheets', 'sop', 'rework', 'payroll', 'reports', 'sites', 'people', 'outbox'],
+  accounts:   ['payroll', 'timesheets', 'reports', 'people', 'outbox'],
+  ceo:        ['command', 'payroll', 'reports', 'sites', 'people', 'outbox', 'tasks', 'approvals'],
   client:     ['approvals', 'reports'],
 };
 
@@ -371,6 +373,13 @@ export default function ApprovalsPage() {
         <main className="flex-1 overflow-auto">
           {view === 'my-tasks' ? (
             <MyTasksView headers={headers} user={user} onOpenNewTask={() => setShowNewTask(true)} />
+          ) : view === 'payroll' ? (
+            <AccountsView
+              headers={headers}
+              sites={sitesList}
+              onOpenNewTask={() => setShowNewTask(true)}
+              onOpenNewSite={() => setShowNewSite(true)}
+            />
           ) : view === 'command' ? (
             user?.role === 'ceo' ? (
               <CEOView

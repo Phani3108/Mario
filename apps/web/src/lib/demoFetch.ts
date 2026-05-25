@@ -218,6 +218,26 @@ export async function demoFetch(input: string, init: RequestInit = {}): Promise<
       currency: 'INR',
     });
   }
+  if (path === '/finance/payroll-csv' && method === 'GET') {
+    // Synthetic monthly payroll CSV — same fields the Accounts view would
+    // build client-side from /users + /finance/rates. Lets the demo "Export
+    // CSV" button actually produce a file.
+    const ROLE_HOURS: Record<string, number> = { employee: 200, supervisor: 220, quality: 180, manager: 200, ceo: 180, accounts: 180, client: 0 };
+    const rateByRole = new Map(store.costRates.map((r) => [r.role, r.hourlyRate]));
+    const header = 'employee,role,site_id,hours,rate_per_hour_inr,total_inr,status';
+    const rows = store.users
+      .filter((u) => u.active !== false && u.role !== 'client')
+      .map((u, i) => {
+        const hours = ROLE_HOURS[u.role] ?? 180;
+        const rate  = rateByRole.get(u.role as any) ?? 0;
+        const total = hours * rate;
+        const status = i % 7 === 6 ? 'hold' : i % 4 === 3 ? 'due' : 'paid';
+        const safe = (s: string) => s.includes(',') ? `"${s.replace(/"/g, '""')}"` : s;
+        return [safe(u.name), safe(u.role), safe(u.siteId ?? ''), hours, rate, total, status].join(',');
+      });
+    const csv = `${header}\n${rows.join('\n')}\n`;
+    return new Response(csv, { status: 200, headers: { 'content-type': 'text/csv;charset=utf-8' } });
+  }
   if (path === '/whatsapp/outbox' && method === 'GET') return ok([]);
   if (path.startsWith('/notifications')) return ok([]);
 
