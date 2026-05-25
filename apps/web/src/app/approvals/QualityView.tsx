@@ -42,11 +42,13 @@ export interface QualityViewProps {
   userMap?: Record<string, string>;
   /** Refresh after action so the parent's counters update too. */
   onChanged: () => void;
+  /** Summon the page-level NewTaskModal — every role except client can. */
+  onOpenNewTask?: () => void;
 }
 
 const RISK_RANK: Record<'LOW' | 'MED' | 'HIGH', number> = { LOW: 0, MED: 1, HIGH: 2 };
 
-export function QualityView({ headers, initialTasks, userMap = {}, onChanged }: QualityViewProps) {
+export function QualityView({ headers, initialTasks, userMap = {}, onChanged, onOpenNewTask }: QualityViewProps) {
   const t = useT();
   const [rows, setRows] = useState<QTask[]>(initialTasks);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -187,6 +189,12 @@ export function QualityView({ headers, initialTasks, userMap = {}, onChanged }: 
                 todayOnly ? 'bg-amber-500 text-slate-900 border-amber-500' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >{t('qSubmittedToday')}</button>
+            {onOpenNewTask && (
+              <button
+                onClick={onOpenNewTask}
+                className="text-xs px-3 py-1.5 rounded-md bg-amber-500 text-slate-900 font-bold hover:bg-amber-400 ml-1"
+              >{t('newTask')}</button>
+            )}
           </div>
         </div>
 

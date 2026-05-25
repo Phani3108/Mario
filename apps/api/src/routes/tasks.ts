@@ -64,8 +64,11 @@ export async function taskRoutes(app: FastifyInstance) {
     schema: { body: CreateTask },
   }, async (req, reply) => {
     const u = req.user;
-    if (u.role !== 'manager' && u.role !== 'supervisor') {
-      return reply.code(403).send({ error: 'only manager/supervisor can create tasks' });
+    // Per product direction, every desk + field role can author tasks. Client
+    // is the only role explicitly blocked from creating work — they only
+    // acknowledge / raise issues on what's already been done.
+    if (u.role === 'client') {
+      return reply.code(403).send({ error: 'clients cannot create tasks' });
     }
     const body = req.body as z.infer<typeof CreateTask>;
     const db = getDb();

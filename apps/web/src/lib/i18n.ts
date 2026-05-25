@@ -228,6 +228,31 @@ const DICT = {
   supEmptySub:      { en: 'Nothing waiting on your approval right now. Your site is on schedule.',
                       hi: 'अभी कुछ भी आपकी मंज़ूरी पर नहीं है। आपकी साइट समय पर है।' },
   supReworkTag:     { en: 'rework',          hi: 'पुनः कार्य' },
+
+  // ─── Manager command center ──────────────────────────────────────────────
+  mgrTitle:         { en: 'Command center',      hi: 'कमांड सेंटर' },
+  mgrSubtitle:      { en: 'Today across every project',
+                      hi: 'आज सभी प्रोजेक्ट पर' },
+  mgrKpiActive:     { en: 'Active sites',        hi: 'सक्रिय साइट' },
+  mgrKpiInProg:     { en: 'In progress',         hi: 'चल रहा' },
+  mgrKpiPending:    { en: 'Pending approvals',   hi: 'मंज़ूरी बाक़ी' },
+  mgrKpiRework:     { en: 'Rework escalations',  hi: 'पुनः कार्य एस्केलेशन' },
+  mgrPortfolio:     { en: 'Site portfolio',      hi: 'साइट पोर्टफ़ोलियो' },
+  mgrActivity:      { en: 'Recent activity',     hi: 'हाल की गतिविधि' },
+  mgrQuickActions:  { en: 'Quick actions',       hi: 'त्वरित क्रियाएँ' },
+  mgrEscalations:   { en: 'Escalations',         hi: 'एस्केलेशन' },
+  mgrViewQueue:     { en: 'View approval queue', hi: 'मंज़ूरी क़तार देखें' },
+  mgrAtRisk:        { en: 'at risk',             hi: 'जोखिम में' },
+  mgrOnTrack:       { en: 'on track',            hi: 'समय पर' },
+  mgrBlocked:       { en: 'blocked',             hi: 'अवरुद्ध' },
+  mgrTasks:         { en: 'tasks',               hi: 'काम' },
+  mgrCrew:          { en: 'crew',                hi: 'टीम' },
+  mgrTodayTasks:    { en: 'Today',               hi: 'आज' },
+  mgrPctDone:       { en: '% done',              hi: '% पूरा' },
+  mgrNoActivity:    { en: 'No activity yet today.', hi: 'आज अभी तक कोई गतिविधि नहीं।' },
+  mgrSinceMin:      { en: 'min ago',             hi: 'मिनट पहले' },
+  mgrSinceHr:       { en: 'h ago',               hi: 'घं पहले' },
+  mgrJustNow:       { en: 'just now',            hi: 'अभी' },
 } as const;
 
 type Key = keyof typeof DICT;

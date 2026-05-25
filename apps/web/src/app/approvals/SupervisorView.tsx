@@ -42,9 +42,10 @@ export interface SupervisorViewProps {
   initialTasks: STask[];
   userMap?: Record<string, string>;
   onChanged: () => void;
+  onOpenNewTask?: () => void;
 }
 
-export function SupervisorView({ headers, initialTasks, userMap = {}, onChanged }: SupervisorViewProps) {
+export function SupervisorView({ headers, initialTasks, userMap = {}, onChanged, onOpenNewTask }: SupervisorViewProps) {
   const t = useT();
   const [rows, setRows] = useState<STask[]>(initialTasks);
   const [tradeFilter, setTradeFilter] = useState<string>('all');
@@ -137,7 +138,13 @@ export function SupervisorView({ headers, initialTasks, userMap = {}, onChanged 
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
             {rows.length} {t('supPendingChip')}
           </span>
-          <span className="ml-auto text-[10px] text-slate-400 font-mono hidden md:inline">{t('qShortcutHint')}</span>
+          {onOpenNewTask && (
+            <button
+              onClick={onOpenNewTask}
+              className="ml-auto px-3 py-1.5 rounded-md bg-amber-500 text-slate-900 font-bold text-xs hover:bg-amber-400"
+            >{t('newTask')}</button>
+          )}
+          <span className={`text-[10px] text-slate-400 font-mono hidden md:inline ${onOpenNewTask ? '' : 'ml-auto'}`}>{t('qShortcutHint')}</span>
         </div>
         <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
           <FilterChip active={tradeFilter === 'all'} onClick={() => setTradeFilter('all')}>

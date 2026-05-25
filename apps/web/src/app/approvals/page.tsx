@@ -7,6 +7,7 @@ import { useT, localizedRole } from '../../lib/i18n';
 import { LangToggle } from '../../components/LangToggle';
 import { QualityView } from './QualityView';
 import { SupervisorView } from './SupervisorView';
+import { ManagerView } from './ManagerView';
 
 type Task = {
   id: string;
@@ -28,6 +29,7 @@ type ProofView = { url: string };
 // labelKey is an i18n dict key; render with t(labelKey).
 const NAV: { key: View; labelKey: string }[] = [
   { key: 'my-tasks',   labelKey: 'navMyTasks' },
+  { key: 'command',    labelKey: 'mgrTitle' },
   { key: 'approvals',  labelKey: 'navApprovals' },
   { key: 'tasks',      labelKey: 'navTasks' },
   { key: 'timesheets', labelKey: 'navTimesheets' },
@@ -39,7 +41,7 @@ const NAV: { key: View; labelKey: string }[] = [
   { key: 'outbox',     labelKey: 'navOutbox' },
 ];
 
-type View = 'my-tasks' | 'approvals' | 'tasks' | 'timesheets' | 'sop' | 'rework' | 'reports' | 'sites' | 'people' | 'outbox';
+type View = 'my-tasks' | 'command' | 'approvals' | 'tasks' | 'timesheets' | 'sop' | 'rework' | 'reports' | 'sites' | 'people' | 'outbox';
 type Site = { id: string; label: string; active: boolean };
 
 // Per-persona sidebar. Ordered: first entry is also the persona's default view
@@ -49,9 +51,9 @@ const ROLE_NAV: Record<string, View[]> = {
   employee:   ['my-tasks'],
   supervisor: ['approvals', 'tasks', 'timesheets', 'people', 'rework'],
   quality:    ['approvals', 'sop', 'rework', 'tasks'],
-  manager:    ['approvals', 'tasks', 'timesheets', 'sop', 'rework', 'reports', 'sites', 'people', 'outbox'],
+  manager:    ['command', 'approvals', 'tasks', 'timesheets', 'sop', 'rework', 'reports', 'sites', 'people', 'outbox'],
   accounts:   ['timesheets', 'reports', 'outbox'],
-  ceo:        ['reports', 'sites', 'people', 'outbox', 'tasks', 'approvals'],
+  ceo:        ['command', 'reports', 'sites', 'people', 'outbox', 'tasks', 'approvals'],
   client:     ['approvals', 'reports'],
 };
 
@@ -98,6 +100,7 @@ export default function ApprovalsPage() {
   const [sitesList, setSitesList] = useState<Site[]>([]);
   const [orgInfo, setOrgInfo] = useState<{ name: string; logoUrl: string | null }>({ name: 'Mario', logoUrl: null });
   const [showNewSite, setShowNewSite] = useState(false);
+  const [showNewTask, setShowNewTask] = useState(false);
   // For Quality view's WORKER column — keyed by user id.
   const [allUsers, setAllUsers] = useState<{ id: string; name: string }[]>([]);
 
@@ -261,8 +264,13 @@ export default function ApprovalsPage() {
               {user ? `${user.name} · ${localizedRole(user.role)}` : ''}
             </span>
             <LangToggle tone="dark" className="hidden md:inline-flex" />
+            {user?.role !== 'client' && (
+              <button onClick={() => setShowNewTask(true)} className="hidden sm:inline-flex px-2 py-1 rounded-md bg-amber-500 text-slate-900 font-bold text-[11px] hover:bg-amber-400">
+                {t('newTask')}
+              </button>
+            )}
             {['manager','ceo','accounts'].includes(user?.role ?? '') && (
-              <button onClick={() => setShowNewSite(true)} className="hidden sm:inline-flex px-2 py-1 rounded-md bg-amber-500 text-slate-900 font-bold text-[11px] hover:bg-amber-400">
+              <button onClick={() => setShowNewSite(true)} className="hidden sm:inline-flex px-2 py-1 rounded-md bg-slate-700 text-amber-300 font-bold text-[11px] hover:bg-slate-600 border border-slate-600">
                 {t('navNewProject')}
               </button>
             )}
@@ -361,7 +369,17 @@ export default function ApprovalsPage() {
         {/* ---------- Main ---------- */}
         <main className="flex-1 overflow-auto">
           {view === 'my-tasks' ? (
-            <MyTasksView headers={headers} user={user} />
+            <MyTasksView headers={headers} user={user} onOpenNewTask={() => setShowNewTask(true)} />
+          ) : view === 'command' ? (
+            <ManagerView
+              headers={headers}
+              initialTasks={tasks as any}
+              sites={sitesList}
+              userMap={Object.fromEntries(allUsers.map((u) => [u.id, u.name]))}
+              onOpenNewTask={() => setShowNewTask(true)}
+              onOpenNewSite={() => setShowNewSite(true)}
+              onViewApprovalQueue={() => setView('approvals')}
+            />
           ) : view === 'tasks' ? (
             <TasksBoard headers={headers} canAssign={user?.role === 'manager' || user?.role === 'supervisor'} />
           ) : view === 'timesheets' ? (
@@ -388,6 +406,7 @@ export default function ApprovalsPage() {
               initialTasks={tasks as any}
               userMap={Object.fromEntries(allUsers.map((u) => [u.id, u.name]))}
               onChanged={load}
+              onOpenNewTask={() => setShowNewTask(true)}
             />
           ) : user?.role === 'supervisor' ? (
             <SupervisorView
@@ -395,6 +414,7 @@ export default function ApprovalsPage() {
               initialTasks={tasks as any}
               userMap={Object.fromEntries(allUsers.map((u) => [u.id, u.name]))}
               onChanged={load}
+              onOpenNewTask={() => setShowNewTask(true)}
             />
           ) : (
           <>
@@ -637,6 +657,23 @@ export default function ApprovalsPage() {
           onSaved={() => { setShowNewSite(false); setView('sites'); load(); }}
         />
       )}
+
+      {/* Page-level "+ New task" modal — every role except Client can summon
+          it from the top bar OR from inside their role-specific view. */}
+      {showNewTask && (
+        <NewTaskModal
+          headers={headers}
+          users={allUsers as any[]}
+          siteId={activeSite || (sitesList[0]?.id ?? '')}
+          onClose={() => setShowNewTask(false)}
+          onCreated={() => {
+            setShowNewTask(false);
+            // Re-load the dashboard so the new task shows up in every view
+            // that's listening (Approvals queue counter, MyTasks, etc.).
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -645,8 +682,12 @@ export default function ApprovalsPage() {
 // Lists every task assigned to me, grouped by state, with a deep-link to the
 // field PWA where the actual photo-proof flow runs.
 function MyTasksView({
-  headers, user,
-}: { headers: () => HeadersInit; user: { name: string; role: string; siteId: string | null } | null }) {
+  headers, user, onOpenNewTask,
+}: {
+  headers: () => HeadersInit;
+  user: { name: string; role: string; siteId: string | null } | null;
+  onOpenNewTask?: () => void;
+}) {
   const [rows, setRows] = useState<Task[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
@@ -680,13 +721,21 @@ function MyTasksView({
 
   return (
     <div className="p-4 sm:p-6 sf-fade-up">
-      <div className="flex items-center gap-3 mb-1">
+      <div className="flex items-center gap-3 mb-1 flex-wrap">
         <div className="text-xl font-extrabold">My tasks</div>
         <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">{rows.length}</span>
-        <a href="http://localhost:5174" target="_blank" rel="noopener noreferrer"
-           className="ml-auto px-3 py-1.5 rounded-md bg-amber-500 text-slate-900 font-bold text-xs hover:bg-amber-400">
-          Open field app →
-        </a>
+        <div className="ml-auto flex items-center gap-2">
+          {onOpenNewTask && (
+            <button
+              onClick={onOpenNewTask}
+              className="px-3 py-1.5 rounded-md bg-amber-500 text-slate-900 font-bold text-xs hover:bg-amber-400"
+            >+ New task</button>
+          )}
+          <a href="http://localhost:5174" target="_blank" rel="noopener noreferrer"
+             className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50">
+            Open field app →
+          </a>
+        </div>
       </div>
       <div className="text-xs text-slate-500 mb-4">
         {user?.name ?? 'Employee'} · field role. Submit photo-proof from the Mario field PWA, then it flows here for approval.
