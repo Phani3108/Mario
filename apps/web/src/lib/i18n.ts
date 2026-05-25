@@ -253,6 +253,31 @@ const DICT = {
   mgrSinceMin:      { en: 'min ago',             hi: 'मिनट पहले' },
   mgrSinceHr:       { en: 'h ago',               hi: 'घं पहले' },
   mgrJustNow:       { en: 'just now',            hi: 'अभी' },
+
+  // ─── CEO dashboard ───────────────────────────────────────────────────────
+  ceoTitle:         { en: 'Executive overview',    hi: 'कार्यकारी अवलोकन' },
+  ceoSubtitle:      { en: 'Portfolio across every project',
+                      hi: 'सभी प्रोजेक्ट का पोर्टफ़ोलियो' },
+  ceoKpiPortfolio:  { en: 'Portfolio value',       hi: 'पोर्टफ़ोलियो मूल्य' },
+  ceoKpiBurn:       { en: 'Burn this month',       hi: 'इस महीने का खर्च' },
+  ceoKpiOnSchedule: { en: 'On-schedule sites',     hi: 'समय पर साइट' },
+  ceoKpiRejectPct:  { en: 'Quality reject %',      hi: 'क्वालिटी अस्वीकार %' },
+  ceoPnl:           { en: 'Portfolio P&L',         hi: 'पोर्टफ़ोलियो लाभ-हानि' },
+  ceoColProject:    { en: 'PROJECT',               hi: 'प्रोजेक्ट' },
+  ceoColContract:   { en: 'CONTRACT',              hi: 'अनुबंध' },
+  ceoColSpent:      { en: 'SPENT',                 hi: 'खर्च' },
+  ceoColRemaining:  { en: 'REMAINING',             hi: 'शेष' },
+  ceoColMargin:     { en: 'MARGIN',                hi: 'मार्जिन' },
+  ceoColDays:       { en: 'DAYS TO HANDOVER',      hi: 'हस्तांतरण तक' },
+  ceoColStatus:     { en: 'STATUS',                hi: 'स्थिति' },
+  ceoCrew:          { en: 'Crew on site',          hi: 'साइट पर टीम' },
+  ceoEscalations:   { en: 'Needing your attention', hi: 'आपके ध्यान की ज़रूरत' },
+  ceoNoEscal:       { en: 'Nothing needs escalation right now.',
+                      hi: 'अभी कुछ भी एस्केलेट नहीं है।' },
+  ceoActiveContracts:{ en: 'Active contracts',     hi: 'सक्रिय अनुबंध' },
+  ceoTotalEmployees:{ en: 'Employees on payroll',  hi: 'पेरोल पर कर्मचारी' },
+  ceoCr:            { en: 'cr',                    hi: 'करोड़' },
+  ceoLakh:          { en: 'L',                     hi: 'लाख' },
 } as const;
 
 type Key = keyof typeof DICT;

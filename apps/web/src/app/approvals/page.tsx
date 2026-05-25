@@ -8,6 +8,7 @@ import { LangToggle } from '../../components/LangToggle';
 import { QualityView } from './QualityView';
 import { SupervisorView } from './SupervisorView';
 import { ManagerView } from './ManagerView';
+import { CEOView } from './CEOView';
 
 type Task = {
   id: string;
@@ -371,15 +372,26 @@ export default function ApprovalsPage() {
           {view === 'my-tasks' ? (
             <MyTasksView headers={headers} user={user} onOpenNewTask={() => setShowNewTask(true)} />
           ) : view === 'command' ? (
-            <ManagerView
-              headers={headers}
-              initialTasks={tasks as any}
-              sites={sitesList}
-              userMap={Object.fromEntries(allUsers.map((u) => [u.id, u.name]))}
-              onOpenNewTask={() => setShowNewTask(true)}
-              onOpenNewSite={() => setShowNewSite(true)}
-              onViewApprovalQueue={() => setView('approvals')}
-            />
+            user?.role === 'ceo' ? (
+              <CEOView
+                headers={headers}
+                sites={sitesList}
+                userMap={Object.fromEntries(allUsers.map((u) => [u.id, u.name]))}
+                onOpenNewTask={() => setShowNewTask(true)}
+                onOpenNewSite={() => setShowNewSite(true)}
+                onViewApprovalQueue={() => setView('approvals')}
+              />
+            ) : (
+              <ManagerView
+                headers={headers}
+                initialTasks={tasks as any}
+                sites={sitesList}
+                userMap={Object.fromEntries(allUsers.map((u) => [u.id, u.name]))}
+                onOpenNewTask={() => setShowNewTask(true)}
+                onOpenNewSite={() => setShowNewSite(true)}
+                onViewApprovalQueue={() => setView('approvals')}
+              />
+            )
           ) : view === 'tasks' ? (
             <TasksBoard headers={headers} canAssign={user?.role === 'manager' || user?.role === 'supervisor'} />
           ) : view === 'timesheets' ? (
