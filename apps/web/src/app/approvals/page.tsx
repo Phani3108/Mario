@@ -120,6 +120,12 @@ export default function ApprovalsPage() {
     try {
       const cachedUser = JSON.parse(localStorage.getItem('sf_user') ?? 'null');
       if (cachedUser) {
+        // Client lives in the read-only portal at /client; redirect immediately
+        // so they don't see the manager-flavoured queue.
+        if (cachedUser.role === 'client') {
+          router.replace('/client');
+          return;
+        }
         setUser(cachedUser);
         // Persona-default landing view: only fire on the first load (when
         // view is still the initial 'approvals') so we don't yank the user
