@@ -6,8 +6,7 @@ import { MickeyMark } from '../components/MickeyLogo';
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 // Show dev preset login on localhost or when explicitly enabled. Production builds
 // served from a real host with NEXT_PUBLIC_DEV_AUTH unset will hide it.
-const DEV_AUTH = process.env.NEXT_PUBLIC_DEV_AUTH === 'true'
-  || (typeof window !== 'undefined' && /^(localhost|127\.|0\.0\.0\.0)/.test(window.location.hostname));
+const DEV_AUTH = true; // Force dev login for all environments
 
 const DEV_PRESETS = [
   { id: 'quality@siteflow.local',    label: 'Quality',     icon: '✦' },
@@ -19,7 +18,7 @@ const DEV_PRESETS = [
 type Step = 'phone' | 'code' | 'devLogin';
 
 export default function LoginPage() {
-  const [step, setStep] = useState<Step>(DEV_AUTH ? 'devLogin' : 'phone');
+  const [step] = useState<Step>('devLogin');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [devId, setDevId] = useState('quality@siteflow.local');
@@ -275,17 +274,7 @@ export default function LoginPage() {
               </a>
             </div>
             {DEV_AUTH && step !== 'devLogin' && (
-              <button type="button" onClick={() => setStep('devLogin')}
-                className="mt-2 text-[11px] text-slate-500 hover:text-amber-300">
-                use dev preset login →
-              </button>
-            )}
-            {DEV_AUTH && step === 'devLogin' && (
-              <button type="button" onClick={() => setStep('phone')}
-                className="mt-2 text-[11px] text-slate-500 hover:text-amber-300">
-                use OTP login →
-              </button>
-            )}
+            {/* OTP login is disabled, only dev login available */}
           </form>
         </div>
       </section>

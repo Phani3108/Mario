@@ -50,35 +50,19 @@ function LangToggle() {
 }
 
 function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [stage, setStage] = useState<'phone' | 'code'>('phone');
-  const [err, setErr] = useState<string | null>(null);
+  const [devId, setDevId] = useState('quality@siteflow.local');
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  async function requestCode(e: React.FormEvent) {
+  async function devLogin(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setErr(null);
     try {
-      const r = await api<{ ok: boolean; devCode?: string }>('/auth/otp/request', {
-        method: 'POST',
-        body: JSON.stringify({ phone, purpose: 'LOGIN' }),
-      });
-      setStage('code');
-      if (r.devCode) setCode(String(r.devCode));
-    } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
-  }
-
-  async function verifyCode(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true); setErr(null);
-    try {
-      const r = await api<{ token: string; user: any }>('/auth/otp/verify', {
-        method: 'POST',
-        body: JSON.stringify({ phone, code, purpose: 'LOGIN' }),
-      });
-      onLogin(r.token, r.user);
-    } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+      // Simulate login with a mock token/user
+      const data = { token: 'dev-token', user: { id: devId, name: devId, role: 'manager' } };
+      onLogin(data.token, data.user);
+    } catch (e: any) { setErr(e.message); }
+    finally { setBusy(false); }
   }
 
   return (
@@ -93,7 +77,7 @@ function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
       </div>
 
       <div className="relative min-h-full grid place-items-center p-6">
-        <form onSubmit={stage === 'phone' ? requestCode : verifyCode}
+        <form onSubmit={devLogin}
               className="w-full max-w-sm bg-slate-900/85 backdrop-blur rounded-2xl p-6 border border-slate-700/80 shadow-2xl sf-fade-up relative">
           <span className="absolute -top-px -left-px w-8 h-8 border-t-2 border-l-2 border-amber-400 rounded-tl-2xl" />
           <span className="absolute -top-px -right-px w-8 h-8 border-t-2 border-r-2 border-amber-400 rounded-tr-2xl" />
@@ -106,44 +90,28 @@ function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
             </div>
             <div className="ml-auto"><LangToggle /></div>
           </div>
-          <div className="text-2xl font-extrabold mb-1 text-slate-100">
-            {stage === 'phone' ? t('signIn') : 'Enter code'}
-          </div>
-          <div className="text-xs text-slate-400 mb-5">
-            {stage === 'phone' ? t('workerOrSup') : `Sent to ${phone}`}
-          </div>
+          <div className="text-2xl font-extrabold mb-1 text-slate-100">Sign in (dev bypass)</div>
+          <div className="text-xs text-slate-400 mb-5">Dev login only. Phone/OTP is disabled.</div>
 
-          {stage === 'phone' ? (
-            <>
-              <label className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">{t('phone')}</label>
-              <input
-                inputMode="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ''))}
-                placeholder="+91XXXXXXXXXX"
-                className="w-full mt-1 px-3 py-3 rounded-lg bg-slate-950 border border-slate-700 text-base text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-amber-500/60"
-              />
-            </>
-          ) : (
-            <>
-              <label className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">6-digit code</label>
-              <input
-                inputMode="numeric"
-                autoFocus
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="------"
-                className="w-full mt-1 px-3 py-3 rounded-lg bg-slate-950 border border-slate-700 text-center text-lg tracking-[0.5em] text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-amber-500/60"
-              />
-              <button type="button" onClick={() => { setStage('phone'); setCode(''); setErr(null); }}
-                className="mt-2 text-[11px] text-slate-400 hover:text-amber-300">← change phone</button>
-            </>
-          )}
+          <label className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Dev user</label>
+          <select
+            value={devId}
+            onChange={e => setDevId(e.target.value)}
+            className="w-full mt-1 px-3 py-3 rounded-lg bg-slate-950 border border-slate-700 text-base text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-amber-500/60"
+          >
+            {[
+              { id: 'quality@siteflow.local', label: 'Quality', icon: '✦' },
+              { id: 'manager@siteflow.local', label: 'Manager', icon: '◈' },
+              { id: 'client@siteflow.local', label: 'Client', icon: '◉' },
+              { id: '+919000000010', label: 'Supervisor', icon: '▲' },
+            ].map(u => (
+              <option key={u.id} value={u.id}>{u.icon} {u.label}</option>
+            ))}
+          </select>
 
-          {err && <div className="mt-3 text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{err}</div>}
-          <button disabled={busy || (stage === 'phone' ? phone.length < 8 : code.length !== 6)}
+          <button disabled={busy}
             className="mt-5 w-full btn-amber py-3 rounded-xl shadow-lg shadow-amber-500/20 disabled:opacity-60">
-            {busy ? '…' : stage === 'phone' ? 'Send code →' : 'Verify →'}
+            {busy ? '…' : 'Sign in'}
           </button>
 
           <div className="mt-5 h-1.5 rounded-full overflow-hidden hi-vis-stripes opacity-60" />
@@ -151,6 +119,7 @@ function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
       </div>
     </div>
   );
+}
 }
 
 type CamRequest =
