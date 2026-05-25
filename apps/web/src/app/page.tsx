@@ -273,7 +273,6 @@ export default function LoginPage() {
                 Field app
               </a>
             </div>
-            {DEV_AUTH && step !== 'devLogin' && (
             {/* OTP login is disabled, only dev login available */}
           </form>
         </div>
