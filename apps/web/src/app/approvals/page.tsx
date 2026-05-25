@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarioMark } from '../../components/MarioLogo';
 import { apiFetch, isDemo } from '../../lib/api';
+import { useT, localizedRole } from '../../lib/i18n';
+import { LangToggle } from '../../components/LangToggle';
 
 type Task = {
   id: string;
@@ -21,17 +23,18 @@ type Task = {
 
 type ProofView = { url: string };
 
-const NAV: { key: View; label: string }[] = [
-  { key: 'my-tasks',   label: 'My tasks' },
-  { key: 'approvals',  label: 'Approvals' },
-  { key: 'tasks',      label: 'Tasks' },
-  { key: 'timesheets', label: 'Timesheets' },
-  { key: 'sop',        label: 'SOP library' },
-  { key: 'rework',     label: 'Rework log' },
-  { key: 'reports',    label: 'Reports' },
-  { key: 'sites',      label: 'Sites' },
-  { key: 'people',     label: 'People' },
-  { key: 'outbox',     label: 'WhatsApp outbox' },
+// labelKey is an i18n dict key; render with t(labelKey).
+const NAV: { key: View; labelKey: string }[] = [
+  { key: 'my-tasks',   labelKey: 'navMyTasks' },
+  { key: 'approvals',  labelKey: 'navApprovals' },
+  { key: 'tasks',      labelKey: 'navTasks' },
+  { key: 'timesheets', labelKey: 'navTimesheets' },
+  { key: 'sop',        labelKey: 'navSop' },
+  { key: 'rework',     labelKey: 'navRework' },
+  { key: 'reports',    labelKey: 'navReports' },
+  { key: 'sites',      labelKey: 'navSitesAdmin' },
+  { key: 'people',     labelKey: 'navPeople' },
+  { key: 'outbox',     labelKey: 'navOutbox' },
 ];
 
 type View = 'my-tasks' | 'approvals' | 'tasks' | 'timesheets' | 'sop' | 'rework' | 'reports' | 'sites' | 'people' | 'outbox';
@@ -79,6 +82,7 @@ function fmt(ts: string | null): string {
 
 export default function ApprovalsPage() {
   const router = useRouter();
+  const t = useT();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [user, setUser] = useState<{ name: string; role: string; siteId: string | null } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -231,35 +235,33 @@ export default function ApprovalsPage() {
             <div className="leading-tight">
               <div className="font-extrabold tracking-tight">{orgInfo.name}</div>
               <div className="text-[10px] text-slate-400 hidden sm:block">
-                {sitesList.find((s) => s.id === activeSite)?.label ?? 'No site'} / {NAV.find((n) => n.key === view)?.label}
+                {sitesList.find((s) => s.id === activeSite)?.label ?? '—'} / {(() => { const e = NAV.find((n) => n.key === view); return e ? t(e.labelKey as any) : ''; })()}
               </div>
             </div>
           </a>
           <div className="ml-auto flex items-center gap-2 text-xs">
             <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold">
-              ⚠ {tasks.length} pending
+              ⚠ {tasks.length} {t('pendingShort')}
             </span>
             {isDemo() && (
               <span title="No backend connected — UI is mocked end-to-end." className="hidden md:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold text-[10px] tracking-wider">
-                DEMO MODE
+                {t('demoMode')}
               </span>
             )}
-            <span className="hidden md:inline-flex px-2 py-1 rounded-md bg-amber-500 text-slate-900 font-bold">
-              FIELD: hi-vis
-            </span>
             <span className="text-slate-300 hidden sm:inline">
-              {user ? `${user.name} · ${user.role}` : ''}
+              {user ? `${user.name} · ${localizedRole(user.role)}` : ''}
             </span>
+            <LangToggle tone="dark" className="hidden md:inline-flex" />
             {['manager','ceo','accounts'].includes(user?.role ?? '') && (
               <button onClick={() => setShowNewSite(true)} className="hidden sm:inline-flex px-2 py-1 rounded-md bg-amber-500 text-slate-900 font-bold text-[11px] hover:bg-amber-400">
-                + New project
+                {t('navNewProject')}
               </button>
             )}
             <a href="/settings" className="text-slate-300 hover:text-amber-300 underline text-xs">
-              Settings
+              {t('settings')}
             </a>
             <button onClick={logout} className="text-amber-400 hover:text-amber-300 underline text-xs">
-              Sign out
+              {t('signOut')}
             </button>
           </div>
         </div>
@@ -268,7 +270,7 @@ export default function ApprovalsPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* ---------- Sidebar (desktop) ---------- */}
         <aside className="hidden md:flex w-56 border-r border-slate-200 bg-white flex-col p-4 text-sm">
-          <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">Workflow</div>
+          <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">{t('navWorkflow')}</div>
           {navForRole(user?.role).map((n) => {
             const active = n.key === view;
             return (
@@ -281,11 +283,11 @@ export default function ApprovalsPage() {
                     : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                {n.label}{n.key === 'approvals' && ` · ${tasks.length}`}
+                {t(n.labelKey as any)}{n.key === 'approvals' && ` · ${tasks.length}`}
               </button>
             );
           })}
-          <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-6 mb-2">Sites</div>
+          <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-6 mb-2">{t('navSites')}</div>
           {sitesList.length === 0 && (
             <div className="text-xs text-slate-400 px-3 py-2">No sites yet. Add one in <button onClick={() => setView('sites')} className="underline text-amber-600">Sites</button>.</div>
           )}
@@ -319,7 +321,7 @@ export default function ApprovalsPage() {
               className="absolute left-0 top-0 bottom-0 w-64 bg-white p-4 shadow-xl sf-fade-up"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">Workflow</div>
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">{t('navWorkflow')}</div>
               {navForRole(user?.role).map((n) => (
                 <button
                   key={n.key}
@@ -328,10 +330,10 @@ export default function ApprovalsPage() {
                     n.key === view ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'text-slate-600'
                   }`}
                 >
-                  {n.label}{n.key === 'approvals' && ` · ${tasks.length}`}
+                  {t(n.labelKey as any)}{n.key === 'approvals' && ` · ${tasks.length}`}
                 </button>
               ))}
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-4 mb-2">Sites</div>
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-4 mb-2">{t('navSites')}</div>
               {sitesList.map((s) => (
                 <button
                   key={s.id}
@@ -375,7 +377,7 @@ export default function ApprovalsPage() {
           <>
           {/* Filter bar */}
           <div className="px-4 sm:px-6 py-3 border-b border-slate-200 bg-white flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <div className="text-base font-semibold mr-2 whitespace-nowrap">Approval queue</div>
+            <div className="text-base font-semibold mr-2 whitespace-nowrap">{t('approvalQueue')}</div>
             <button
               onClick={() => setFilter('all')}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition ${
@@ -404,7 +406,7 @@ export default function ApprovalsPage() {
                 onClick={() => setView('tasks')}
                 className="ml-auto px-3 py-1.5 rounded-md bg-amber-500 text-slate-900 font-bold text-xs hover:bg-amber-400"
               >
-                + New task
+                {t('newTask')}
               </button>
             )}
             <span className={`text-[10px] text-slate-400 whitespace-nowrap hidden sm:inline ${(user?.role === 'manager' || user?.role === 'supervisor') ? '' : 'ml-auto'}`}>
@@ -423,8 +425,8 @@ export default function ApprovalsPage() {
               <div className="mx-auto w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-50 grid place-items-center text-4xl mb-4">
                 ✓
               </div>
-              <div className="text-slate-600 font-semibold">Nothing waiting on you.</div>
-              <div className="text-xs text-slate-400 mt-1">Good job. Site is on schedule.</div>
+              <div className="text-slate-600 font-semibold">{t('nothingWaiting')}</div>
+              <div className="text-xs text-slate-400 mt-1">{t('goodJob')}</div>
             </div>
           )}
 
@@ -732,16 +734,17 @@ function PlaceholderView({ view, onBack }: { view: View; onBack: () => void }) {
 }
 
 function EmptySite({ onBack }: { onBack: () => void }) {
+  const t = useT();
   return (
     <div className="p-10 text-center sf-fade-up">
       <div className="mx-auto w-24 h-24 rounded-2xl site-photo grid place-items-center text-4xl mb-4 text-white drop-shadow">◷</div>
-      <div className="text-slate-700 font-semibold">No projects yet.</div>
-      <div className="text-xs text-slate-500 mt-1 mb-4">Add your first project to start logging photo-proof.</div>
+      <div className="text-slate-700 font-semibold">{t('noProjectsYet')}</div>
+      <div className="text-xs text-slate-500 mt-1 mb-4">{t('addFirstProject')}</div>
       <button
         onClick={onBack}
         className="px-4 py-2 rounded-lg bg-amber-500 text-slate-900 font-bold text-sm hover:bg-amber-400 transition"
       >
-        + Add a project
+        {t('ctaAddProject')}
       </button>
     </div>
   );

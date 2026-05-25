@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarioMark } from '../../components/MarioLogo';
 import { apiFetch } from '../../lib/api';
+import { useT } from '../../lib/i18n';
+import { LangToggle } from '../../components/LangToggle';
 
 type Settings = {
   accentColor: string;
@@ -13,6 +15,7 @@ type Settings = {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const t = useT();
   const [org, setOrg] = useState<{ id: string; name: string } | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -87,9 +90,12 @@ export default function SettingsPage() {
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center gap-3">
           <a href="/approvals" className="flex items-center gap-3">
             <MarioMark size={32} />
-            <div className="font-extrabold tracking-tight">Mario · Settings</div>
+            <div className="font-extrabold tracking-tight">{t('appName')} · {t('settings')}</div>
           </a>
-          <a href="/approvals" className="ml-auto text-xs text-amber-400 hover:text-amber-300 underline">← Back to dashboard</a>
+          <div className="ml-auto flex items-center gap-3">
+            <LangToggle tone="dark" />
+            <a href="/approvals" className="text-xs text-amber-400 hover:text-amber-300 underline">{t('back')}</a>
+          </div>
         </div>
       </header>
 
@@ -98,13 +104,13 @@ export default function SettingsPage() {
         {info && <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">{info}</div>}
 
         <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Organization</div>
+          <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">{t('orgTitle')}</div>
           <div className="text-xl font-extrabold">{org?.name ?? '—'}</div>
           <div className="text-xs text-slate-500 mt-1">Org ID: <code className="text-[11px]">{org?.id ?? '—'}</code></div>
         </section>
 
         <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <div className="font-semibold mb-3">Brand logo</div>
+          <div className="font-semibold mb-3">{t('brandLogo')}</div>
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 grid place-items-center overflow-hidden">
               {logoUrl
@@ -117,7 +123,7 @@ export default function SettingsPage() {
                 disabled={busy}
                 className="px-4 py-2 rounded-lg bg-amber-500 text-slate-900 font-bold text-sm hover:bg-amber-400 disabled:opacity-50"
               >
-                {busy ? 'Uploading…' : 'Upload new logo'}
+                {busy ? t('uploading') : t('uploadNewLogo')}
               </button>
               <input
                 ref={fileRef}
@@ -130,16 +136,16 @@ export default function SettingsPage() {
                   e.target.value = '';
                 }}
               />
-              <div className="text-xs text-slate-500 mt-2">PNG, JPG, WebP, or SVG. Square works best.</div>
+              <div className="text-xs text-slate-500 mt-2">{t('logoHelp')}</div>
             </div>
           </div>
         </section>
 
         <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="font-semibold">Brand &amp; defaults</div>
+          <div className="font-semibold">{t('brandDefaults')}</div>
           <div className="grid grid-cols-2 gap-4">
             <label className="block">
-              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-1">Accent colour</div>
+              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-1">{t('accentColour')}</div>
               <input
                 type="color"
                 value={settings?.accentColor ?? '#F59E0B'}
@@ -148,7 +154,7 @@ export default function SettingsPage() {
               />
             </label>
             <label className="block">
-              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-1">Primary city</div>
+              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-1">{t('primaryCity')}</div>
               <input
                 type="text"
                 value={settings?.primaryCity ?? ''}
@@ -158,7 +164,7 @@ export default function SettingsPage() {
               />
             </label>
             <label className="block">
-              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-1">Currency</div>
+              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-1">{t('currency')}</div>
               <input
                 type="text"
                 value={settings?.currency ?? 'INR'}
@@ -167,7 +173,7 @@ export default function SettingsPage() {
               />
             </label>
             <label className="block">
-              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-1">Default geofence (m)</div>
+              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-1">{t('defaultGeofence')}</div>
               <input
                 type="number"
                 min={20}
@@ -183,7 +189,7 @@ export default function SettingsPage() {
             onClick={() => settings && saveSettings(settings)}
             className="px-4 py-2 rounded-lg bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 disabled:opacity-50"
           >
-            {busy ? 'Saving…' : 'Save changes'}
+            {busy ? t('saving') : t('save')}
           </button>
         </section>
       </main>

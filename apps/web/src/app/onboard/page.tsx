@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarioMark } from '../../components/MarioLogo';
 import { apiFetch, isDemo } from '../../lib/api';
+import { useT } from '../../lib/i18n';
+import { LangToggle } from '../../components/LangToggle';
 
 // Detect demo mode at module load so the JSX below can branch on it.
 // `isDemo()` is safe to call on the server (returns false) and on the client
@@ -13,6 +15,7 @@ type Step = 1 | 2 | 3 | 4 | 5;
 
 export default function OnboardPage() {
   const router = useRouter();
+  const t = useT();
   const [step, setStep] = useState<Step>(1);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -165,11 +168,14 @@ export default function OnboardPage() {
         <div className="flex items-center gap-3">
           <MarioMark size={36} />
           <div>
-            <div className="font-bold">Mario · Setup</div>
-            <div className="text-[11px] text-slate-400">Step {step} of 5</div>
+            <div className="font-bold">{t('appName')} · {t('onboardStep1')}</div>
+            <div className="[11px] text-slate-400">Step {step} of 5</div>
           </div>
         </div>
-        <a href="/" className="text-xs text-slate-500 hover:text-amber-300">← back to login</a>
+        <div className="flex items-center gap-3">
+          <LangToggle tone="dark" />
+          <a href="/" className="text-xs text-slate-500 hover:text-amber-300">{t('back')}</a>
+        </div>
       </header>
 
       <div className="max-w-2xl mx-auto px-5 py-10">
@@ -186,15 +192,13 @@ export default function OnboardPage() {
 
         {step === 1 && (
           <section className="space-y-4">
-            <h1 className="text-2xl font-extrabold">Who's signing up?</h1>
+            <h1 className="text-2xl font-extrabold">{t('onboardStep1')}</h1>
             <p className="text-sm text-slate-400">
-              {DEMO
-                ? 'Phone verification is skipped in the demo. Wire MSG91 to require real OTP.'
-                : "We'll text you a code on WhatsApp/SMS to confirm."}
+              {DEMO ? t('demoSkipBanner') : t('onboardOtpHint')}
             </p>
             {DEMO && (
               <div className="text-xs px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-200">
-                <b>Demo mode:</b> phone verification is skipped. Your "org" lives in this browser only.
+                {t('demoSkipBanner')}
               </div>
             )}
             <Field label="Your name" value={founderName} onChange={setFounderName} placeholder="e.g. Anita Reddy" />
@@ -205,7 +209,7 @@ export default function OnboardPage() {
                 disabled={!founderName || phone.length < 8}
                 onClick={() => { setSignupToken('demo'); setStep(2); }}
                 className="w-full py-3 rounded-xl bg-amber-500 text-slate-900 font-extrabold disabled:opacity-50">
-                Continue →
+                {t('continueArrow')}
               </button>
             ) : !otpSent ? (
               <button disabled={busy || !founderName || phone.length < 8} onClick={sendSignupOtp}
@@ -227,7 +231,7 @@ export default function OnboardPage() {
 
         {step === 2 && (
           <section className="space-y-4">
-            <h1 className="text-2xl font-extrabold">Your company</h1>
+            <h1 className="text-2xl font-extrabold">{t('onboardStep2')}</h1>
             <p className="text-sm text-slate-400">This becomes your dashboard branding.</p>
             <Field label="Company name" value={companyName} onChange={setCompanyName} placeholder="e.g. Reddy Constructions Pvt Ltd" />
             <Field label="Primary city" value={primaryCity} onChange={setPrimaryCity} />
@@ -255,7 +259,7 @@ export default function OnboardPage() {
 
         {step === 3 && (
           <section className="space-y-4">
-            <h1 className="text-2xl font-extrabold">Your first site</h1>
+            <h1 className="text-2xl font-extrabold">{t('onboardStep3')}</h1>
             <p className="text-sm text-slate-400">You can add more sites later from the dashboard.</p>
             <Field label="Site name" value={siteName} onChange={setSiteName} placeholder="e.g. Prestige Tower A" />
             <Field label="Address" value={siteAddress} onChange={setSiteAddress} placeholder="Street, area, city" />
@@ -286,7 +290,7 @@ export default function OnboardPage() {
 
         {step === 4 && (
           <section className="space-y-4">
-            <h1 className="text-2xl font-extrabold">Invite your team</h1>
+            <h1 className="text-2xl font-extrabold">{t('onboardStep4')}</h1>
             <p className="text-sm text-slate-400">They'll get a WhatsApp message with a link to the field app.</p>
             {invites.map((inv, i) => (
               <div key={i} className="flex gap-2">

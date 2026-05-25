@@ -3,23 +3,28 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarioMark } from '../components/MarioLogo';
 import { apiFetch } from '../lib/api';
+import { useT } from '../lib/i18n';
+import { LangToggle } from '../components/LangToggle';
 // Show dev preset login on localhost or when explicitly enabled. Production builds
 // served from a real host with NEXT_PUBLIC_DEV_AUTH unset will hide it.
 const DEV_AUTH = true; // Force dev login for all environments
 
+// `labelKey` is i18n; rendered via t(labelKey) so the preset chips speak the
+// user's chosen language.
 const DEV_PRESETS = [
-  { id: 'ceo@siteflow.local',        label: 'CEO',         icon: '◆' },
-  { id: 'accounts@siteflow.local',   label: 'Accounts',    icon: '₹' },
-  { id: 'manager@siteflow.local',    label: 'Manager',     icon: '◈' },
-  { id: 'quality@siteflow.local',    label: 'Quality',     icon: '✦' },
-  { id: '+919000000110',             label: 'Supervisor',  icon: '▲' },
-  { id: '+919000000111',             label: 'Employee',    icon: '●' },
-  { id: 'client@siteflow.local',     label: 'Client',      icon: '◉' },
-];
+  { id: 'ceo@siteflow.local',        labelKey: 'roleCEO',        icon: '◆' },
+  { id: 'accounts@siteflow.local',   labelKey: 'roleAccounts',   icon: '₹' },
+  { id: 'manager@siteflow.local',    labelKey: 'roleManager',    icon: '◈' },
+  { id: 'quality@siteflow.local',    labelKey: 'roleQuality',    icon: '✦' },
+  { id: '+919000000110',             labelKey: 'roleSupervisor', icon: '▲' },
+  { id: '+919000000111',             labelKey: 'roleEmployee',   icon: '●' },
+  { id: 'client@siteflow.local',     labelKey: 'roleClient',     icon: '◉' },
+] as const;
 
 type Step = 'phone' | 'code' | 'devLogin';
 
 export default function LoginPage() {
+  const t = useT();
   const [step] = useState<Step>('devLogin');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -101,13 +106,13 @@ export default function LoginPage() {
           <a href="/" className="flex items-center gap-3 group" aria-label="Mario home">
             <MarioMark size={40} className="group-hover:scale-105 transition" />
             <div className="leading-tight">
-              <div className="font-bold tracking-tight">Mario</div>
-              <div className="text-[11px] text-slate-400">Site truth, on schedule.</div>
+              <div className="font-bold tracking-tight">{t('appName')}</div>
+              <div className="text-[11px] text-slate-400">{t('eyebrow')}</div>
             </div>
           </a>
-          <div className="ml-auto hidden sm:flex items-center gap-2 text-xs">
-            <span className="px-2 py-1 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30 font-semibold">DEV BUILD</span>
-            <span className="text-slate-500">v0.1 · localhost</span>
+          <div className="ml-auto flex items-center gap-2 text-xs">
+            <LangToggle tone="dark" />
+            <span className="hidden sm:inline-flex px-2 py-1 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30 font-semibold">DEV BUILD</span>
           </div>
         </div>
       </header>
@@ -121,17 +126,15 @@ export default function LoginPage() {
               <span className="absolute inset-0 rounded-full bg-amber-400 sf-pulse-ring" />
               <span className="relative inline-flex rounded-full w-2 h-2 bg-amber-400" />
             </span>
-            PROOF, NOT PROMISES.
+            {t('eyebrow')}
           </div>
           <h1 className="font-serif text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.05] text-slate-100">
-            A flat takes a year to build.<br />
-            <span className="text-amber-400">About four minutes to inspect.</span><br />
-            We changed the math.
+            {t('heroL1')}<br />
+            <span className="text-amber-400">{t('heroL2')}</span><br />
+            {t('heroL3')}
           </h1>
           <p className="mt-5 text-slate-300 text-base md:text-lg max-w-md leading-relaxed">
-            Mario is the proof layer for residential real estate. Every tile, every coat,
-            every fitting — photographed on site, geofenced to the square metre, approved
-            by four people who put their name on it. <span className="text-slate-100 font-semibold">Add a project in a minute. Add a tower in five.</span>
+            {t('heroSub')} <span className="text-slate-100 font-semibold">{t('heroAdd')}</span>
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             {/* Logged-in users get the 1-step modal at /approvals?new=site.
@@ -140,13 +143,13 @@ export default function LoginPage() {
               href={typeof window !== 'undefined' && localStorage.getItem('sf_token') ? '/approvals?new=site' : '/onboard'}
               className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold tracking-wide shadow-lg shadow-amber-500/20 transition"
             >
-              + Add a project →
+              {t('ctaAddProject')}
             </a>
             <a
               href="#how"
               className="px-5 py-3 rounded-xl border border-slate-700 text-slate-200 font-semibold hover:border-amber-400/60 hover:text-amber-300 transition"
             >
-              How it works
+              {t('ctaHowItWorks')}
             </a>
           </div>
           <div className="mt-8 h-2 rounded-full overflow-hidden hi-vis-stripes opacity-60 max-w-md" />
@@ -161,14 +164,12 @@ export default function LoginPage() {
             <span className="absolute -top-px -left-px w-8 h-8 border-t-2 border-l-2 border-amber-400 rounded-tl-2xl" />
             <span className="absolute -top-px -right-px w-8 h-8 border-t-2 border-r-2 border-amber-400 rounded-tr-2xl" />
 
-            <div className="text-amber-400 text-[11px] font-bold tracking-[0.2em]">DESK DASHBOARD</div>
+            <div className="text-amber-400 text-[11px] font-bold tracking-[0.2em]">{t('loginDeskTitle')}</div>
             <div className="text-2xl font-extrabold mt-1">
-              {step === 'code' ? 'Verify your phone' : 'Sign in'}
+              {t('signIn')}
             </div>
             <div className="text-xs text-slate-400 mb-6">
-              {step === 'code' ? `Code sent to ${phone}` :
-                step === 'devLogin' ? 'Dev login · any code accepted' :
-                'Phone + OTP (WhatsApp / SMS)'}
+              {t('loginSubtitle')}
             </div>
 
             {step === 'phone' && (
@@ -207,7 +208,7 @@ export default function LoginPage() {
             {step === 'devLogin' && (
               <>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                  Dev seed account
+                  {t('devSeedAccount')}
                 </label>
                 <input
                   value={devId}
@@ -227,7 +228,7 @@ export default function LoginPage() {
                       }`}
                     >
                       <span className="mr-1.5 opacity-70">{r.icon}</span>
-                      <span className="font-semibold">{r.label}</span>
+                      <span className="font-semibold">{t(r.labelKey)}</span>
                     </button>
                   ))}
                 </div>
@@ -249,18 +250,15 @@ export default function LoginPage() {
               disabled={busy}
               className="mt-6 w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-900 font-extrabold tracking-wide disabled:opacity-60 transition shadow-lg shadow-amber-500/20"
             >
-              {busy ? 'Working…' :
-                step === 'phone' ? 'Send code →' :
-                step === 'code' ? 'Verify & sign in →' :
-                'Sign in →'}
+              {busy ? t('loading') : t('signInArrow')}
             </button>
 
             <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between gap-4 text-[12px]">
               <a className="text-amber-400 font-semibold hover:text-amber-300" href="/onboard">
-                New contractor? Create account →
+                {t('newContractor')}
               </a>
               <a className="text-slate-500 underline" href="http://localhost:5174">
-                Field app
+                {t('fieldApp')}
               </a>
             </div>
             {/* OTP login is disabled, only dev login available */}
@@ -270,51 +268,39 @@ export default function LoginPage() {
 
       {/* Three Ogilvy "reasons to believe" — long-copy cards under the fold */}
       <section id="how" className="relative z-10 max-w-6xl mx-auto px-5 py-14 border-t border-white/5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-amber-300/80 mb-3 font-bold">Why developers switch to Mario</div>
+        <div className="text-[10px] uppercase tracking-[0.3em] text-amber-300/80 mb-3 font-bold">{t('whySwitch')}</div>
         <div className="grid md:grid-cols-3 gap-5">
           {[
-            {
-              title: 'The photograph that doesn’t lie.',
-              body: 'Every proof is watermarked client-side with task ID, GPS, and timestamp before it leaves the employee’s phone. By the time it reaches your dashboard, it’s already too honest to argue with.',
-              icon: '▣',
-            },
-            {
-              title: 'Four signatures. Four levels of conscience.',
-              body: 'Supervisor, Quality, Manager, Client. Each one signs with their name. After three rejections, the task escalates automatically. Defects don’t walk past four people — and they don’t reach the handover.',
-              icon: '✔',
-            },
-            {
-              title: 'Payroll that matches reality.',
-              body: 'Hours billed are hours photographed on site. Inside the geofence, or you don’t get the minute. The math at the end of the month is the same math the foreman saw at the end of the day.',
-              icon: '₹',
-            },
+            { titleKey: 'reason1Title', bodyKey: 'reason1Body', icon: '▣' },
+            { titleKey: 'reason2Title', bodyKey: 'reason2Body', icon: '✔' },
+            { titleKey: 'reason3Title', bodyKey: 'reason3Body', icon: '₹' },
           ].map((card, i) => (
             <article
-              key={card.title}
+              key={card.titleKey}
               className="sf-fade-up rounded-2xl bg-slate-900/70 border border-slate-700/60 p-5 hover:border-amber-400/40 transition"
               style={{ animationDelay: `${0.1 + i * 0.08}s` }}
             >
               <div className="text-2xl text-amber-400/90 mb-2">{card.icon}</div>
-              <div className="font-serif text-lg font-extrabold text-slate-100 leading-tight mb-2">{card.title}</div>
-              <p className="text-sm text-slate-300 leading-relaxed">{card.body}</p>
+              <div className="font-serif text-lg font-extrabold text-slate-100 leading-tight mb-2">{t(card.titleKey as any)}</div>
+              <p className="text-sm text-slate-300 leading-relaxed">{t(card.bodyKey as any)}</p>
             </article>
           ))}
         </div>
 
         <div className="mt-10 flex flex-wrap items-end justify-between gap-6 pt-8 border-t border-white/5">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-slate-500 mb-2">The chain</div>
+            <div className="text-[10px] uppercase tracking-[0.3em] text-slate-500 mb-2">{t('chainLabel')}</div>
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              {['Employee', 'Supervisor', 'Quality', 'Manager', 'Client'].map((s, i, a) => (
-                <div key={s} className="flex items-center gap-2 sf-fade-up" style={{ animationDelay: `${0.3 + i * 0.08}s` }}>
-                  <span className="px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-200 font-semibold">{s}</span>
+              {(['chainWorker', 'chainSup', 'chainQuality', 'chainManager', 'chainClient'] as const).map((k, i, a) => (
+                <div key={k} className="flex items-center gap-2 sf-fade-up" style={{ animationDelay: `${0.3 + i * 0.08}s` }}>
+                  <span className="px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-200 font-semibold">{t(k)}</span>
                   {i < a.length - 1 && <span className="text-amber-500/60">›</span>}
                 </div>
               ))}
             </div>
           </div>
           <div className="text-[13px] text-slate-400 max-w-xs">
-            First 50 tasks and 14 days free. ₹49 per employee per month after that. No demo seats, no annual contracts.
+            {t('pricing')}
           </div>
         </div>
       </section>
