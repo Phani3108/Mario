@@ -37,7 +37,7 @@ const PENDING_FOR_ROLE: Record<Role, TaskState[]> = {
   quality:    ['SUPERVISOR_APPROVED'],
   manager:    ['QUALITY_APPROVED'],
   client:     ['MANAGER_APPROVED'],
-  worker: [], ceo: [], accounts: [],
+  employee: [], ceo: [], accounts: [],
 };
 
 function decorate(t: Task): Task {
@@ -79,6 +79,27 @@ export async function demoFetch(input: string, init: RequestInit = {}): Promise<
   if (path === '/orgs/me/logo-presign' && method === 'POST') {
     return ok({ error: 'logo upload disabled in demo mode — connect a real API to enable.' }, 400);
   }
+  // Brand-new-org signup in demo mode: create a synthetic founder + token so
+  // the 5-step wizard can reach Step 5 without ever talking to a backend.
+  if (path === '/orgs/signup' && method === 'POST') {
+    const founderId = newId('user');
+    const founder = {
+      id: founderId, orgId: ORG.id,
+      name: body?.founderName ?? 'Founder',
+      role: 'ceo' as Role,
+      phone: body?.phone ?? null, email: body?.email ?? null,
+      siteId: null, active: true,
+    };
+    store.users.push(founder);
+    if (body?.primaryCity)  store.settings.primaryCity  = body.primaryCity;
+    if (body?.currency)     store.settings.currency     = body.currency;
+    if (body?.accentColor)  store.settings.accentColor  = body.accentColor;
+    return ok({
+      token: tokenFor(founderId),
+      org: { id: ORG.id, name: body?.companyName ?? ORG.name },
+      user: { id: founderId, name: founder.name, role: founder.role, siteId: null, orgId: ORG.id },
+    });
+  }
 
   // ---------- SITES ----------
   if (path === '/sites' && method === 'GET') {
@@ -102,7 +123,7 @@ export async function demoFetch(input: string, init: RequestInit = {}): Promise<
   if (path === '/users' && method === 'POST') {
     const u = {
       id: newId('user'), orgId: ORG.id, name: body?.name ?? 'New user',
-      role: (body?.role ?? 'worker') as Role,
+      role: (body?.role ?? 'employee') as Role,
       phone: body?.phone ?? null, email: body?.email ?? null,
       siteId: body?.siteId ?? null, active: true,
     };

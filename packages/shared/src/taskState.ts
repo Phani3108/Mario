@@ -82,7 +82,7 @@ export function nextState(current: TaskState, event: TaskEvent): TaskState {
   throw new Error(`Illegal transition: ${current} --${event.type}--> ?`);
 }
 
-/** Returns the role expected to act on a task in the given state, or null if terminal/waiting on worker. */
+/** Returns the role expected to act on a task in the given state, or null if terminal/waiting on employee. */
 export function expectedApprover(state: TaskState): Role | null {
   switch (state) {
     case 'PROOF_SUBMITTED':

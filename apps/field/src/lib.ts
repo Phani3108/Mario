@@ -62,7 +62,7 @@ export function getGeo(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) {
       // In demo mode return a deterministic Hyderabad/Hitech City fix so the
-      // worker UI does something sensible without permissions.
+      // employee UI does something sensible without permissions.
       if (isDemo()) {
         return resolve({
           coords: { latitude: 17.4474, longitude: 78.3762, accuracy: 10, altitude: null, altitudeAccuracy: null, heading: null, speed: null },

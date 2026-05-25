@@ -22,6 +22,7 @@ type Task = {
 type ProofView = { url: string };
 
 const NAV: { key: View; label: string }[] = [
+  { key: 'my-tasks',   label: 'My tasks' },
   { key: 'approvals',  label: 'Approvals' },
   { key: 'tasks',      label: 'Tasks' },
   { key: 'timesheets', label: 'Timesheets' },
@@ -33,8 +34,32 @@ const NAV: { key: View; label: string }[] = [
   { key: 'outbox',     label: 'WhatsApp outbox' },
 ];
 
-type View = 'approvals' | 'tasks' | 'timesheets' | 'sop' | 'rework' | 'reports' | 'sites' | 'people' | 'outbox';
+type View = 'my-tasks' | 'approvals' | 'tasks' | 'timesheets' | 'sop' | 'rework' | 'reports' | 'sites' | 'people' | 'outbox';
 type Site = { id: string; label: string; active: boolean };
+
+// Per-persona sidebar. Ordered: first entry is also the persona's default view
+// when they land on the dashboard. The plan's six personas + the existing
+// client role each get only the tools they actually need.
+const ROLE_NAV: Record<string, View[]> = {
+  employee:   ['my-tasks'],
+  supervisor: ['approvals', 'tasks', 'timesheets', 'people', 'rework'],
+  quality:    ['approvals', 'sop', 'rework', 'tasks'],
+  manager:    ['approvals', 'tasks', 'timesheets', 'sop', 'rework', 'reports', 'sites', 'people', 'outbox'],
+  accounts:   ['timesheets', 'reports', 'outbox'],
+  ceo:        ['reports', 'sites', 'people', 'outbox', 'tasks', 'approvals'],
+  client:     ['approvals', 'reports'],
+};
+
+function navForRole(role: string | undefined | null): typeof NAV {
+  if (!role || !ROLE_NAV[role]) return NAV; // fallback: show everything
+  const allowed = new Set(ROLE_NAV[role]);
+  return NAV.filter((n) => allowed.has(n.key));
+}
+
+function defaultViewForRole(role: string | undefined | null): View {
+  if (!role || !ROLE_NAV[role] || ROLE_NAV[role].length === 0) return 'approvals';
+  return ROLE_NAV[role][0] as View;
+}
 
 function tradeClass(trade: string): string {
   const t = trade.toLowerCase();
@@ -66,6 +91,7 @@ export default function ApprovalsPage() {
   const [activeSite, setActiveSite] = useState<string>('');
   const [sitesList, setSitesList] = useState<Site[]>([]);
   const [orgInfo, setOrgInfo] = useState<{ name: string; logoUrl: string | null }>({ name: 'Mario', logoUrl: null });
+  const [showNewSite, setShowNewSite] = useState(false);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('sf_token') : null;
 
@@ -79,7 +105,14 @@ export default function ApprovalsPage() {
     setError(null);
     try {
       const cachedUser = JSON.parse(localStorage.getItem('sf_user') ?? 'null');
-      if (cachedUser) setUser(cachedUser);
+      if (cachedUser) {
+        setUser(cachedUser);
+        // Persona-default landing view: only fire on the first load (when
+        // view is still the initial 'approvals') so we don't yank the user
+        // away from a tab they've actively switched to.
+        const defaultView = defaultViewForRole(cachedUser.role);
+        setView((cur) => (cur === 'approvals' && defaultView !== 'approvals' ? defaultView : cur));
+      }
 
       const [pendingRes, sitesRes, orgRes] = await Promise.all([
         apiFetch(`/approvals/pending`, { headers: headers() }),
@@ -107,6 +140,23 @@ export default function ApprovalsPage() {
   }, [token, headers, router, activeSite]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Deep-link from the landing page: /approvals?new=site opens the NewSiteModal
+  // straight away and switches to the Sites tab so the list refresh is visible.
+  // (Read window.location.search directly — useSearchParams() requires a
+  // <Suspense> boundary under static export, which we don't have.)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get('new') === 'site') {
+      setShowNewSite(true);
+      setView('sites');
+      sp.delete('new');
+      const url = new URL(window.location.href);
+      url.search = sp.toString();
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
 
   async function act(taskId: string, kind: 'approve' | 'reject') {
     setBusyId(taskId);
@@ -200,6 +250,11 @@ export default function ApprovalsPage() {
             <span className="text-slate-300 hidden sm:inline">
               {user ? `${user.name} · ${user.role}` : ''}
             </span>
+            {['manager','ceo','accounts'].includes(user?.role ?? '') && (
+              <button onClick={() => setShowNewSite(true)} className="hidden sm:inline-flex px-2 py-1 rounded-md bg-amber-500 text-slate-900 font-bold text-[11px] hover:bg-amber-400">
+                + New project
+              </button>
+            )}
             <a href="/settings" className="text-slate-300 hover:text-amber-300 underline text-xs">
               Settings
             </a>
@@ -214,7 +269,7 @@ export default function ApprovalsPage() {
         {/* ---------- Sidebar (desktop) ---------- */}
         <aside className="hidden md:flex w-56 border-r border-slate-200 bg-white flex-col p-4 text-sm">
           <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">Workflow</div>
-          {NAV.map((n) => {
+          {navForRole(user?.role).map((n) => {
             const active = n.key === view;
             return (
               <button
@@ -265,7 +320,7 @@ export default function ApprovalsPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">Workflow</div>
-              {NAV.map((n) => (
+              {navForRole(user?.role).map((n) => (
                 <button
                   key={n.key}
                   onClick={() => { setView(n.key); setMobileNav(false); }}
@@ -294,7 +349,9 @@ export default function ApprovalsPage() {
 
         {/* ---------- Main ---------- */}
         <main className="flex-1 overflow-auto">
-          {view === 'tasks' ? (
+          {view === 'my-tasks' ? (
+            <MyTasksView headers={headers} user={user} />
+          ) : view === 'tasks' ? (
             <TasksBoard headers={headers} canAssign={user?.role === 'manager' || user?.role === 'supervisor'} />
           ) : view === 'timesheets' ? (
             <TimesheetsToday headers={headers} />
@@ -313,7 +370,7 @@ export default function ApprovalsPage() {
           ) : view !== 'approvals' ? (
             <PlaceholderView view={view} onBack={() => setView('approvals')} />
           ) : sitesList.length === 0 ? (
-            <EmptySite onBack={() => setView('sites')} />
+            <EmptySite onBack={() => setShowNewSite(true)} />
           ) : (
           <>
           {/* Filter bar */}
@@ -544,6 +601,104 @@ export default function ApprovalsPage() {
           )}
         </main>
       </div>
+
+      {/* Page-level "+ New project" modal — summoned by the top-bar button,
+          by the landing CTA via /approvals?new=site, and by the empty-state
+          "Add a project" button. Reuses the existing NewSiteModal. */}
+      {showNewSite && (
+        <NewSiteModal
+          headers={headers}
+          onClose={() => setShowNewSite(false)}
+          onSaved={() => { setShowNewSite(false); setView('sites'); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// The Employee persona — their entire day is "what's on my plate, right now?"
+// Lists every task assigned to me, grouped by state, with a deep-link to the
+// field PWA where the actual photo-proof flow runs.
+function MyTasksView({
+  headers, user,
+}: { headers: () => HeadersInit; user: { name: string; role: string; siteId: string | null } | null }) {
+  const [rows, setRows] = useState<Task[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await apiFetch(`/tasks`, { headers: headers() });
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? 'failed');
+        const all: Task[] = await r.json();
+        // The dev/demo `/tasks` returns everything; filter client-side to "mine".
+        const meId = (() => { try { return JSON.parse(localStorage.getItem('sf_user') ?? 'null')?.id ?? null; } catch { return null; } })();
+        const mine = all.filter((t: any) => !meId || t.assigneeUserId === meId);
+        setRows(mine);
+      } catch (e: any) {
+        setErr(e?.message ?? 'failed to load tasks');
+      }
+    })();
+  }, [headers]);
+
+  // Visual groups roughly follow the field-PWA worker flow: act now, wait, history.
+  const ACT_STATES   = new Set(['ASSIGNED', 'ACCEPTED', 'IN_PROGRESS', 'REWORK']);
+  const WAIT_STATES  = new Set(['PROOF_SUBMITTED', 'SUPERVISOR_APPROVED', 'QUALITY_APPROVED', 'MANAGER_APPROVED']);
+  const DONE_STATES  = new Set(['CLOSED', 'CLIENT_ACKNOWLEDGED']);
+
+  const groups = useMemo(() => ({
+    act:  rows.filter((t) => ACT_STATES.has(t.state)),
+    wait: rows.filter((t) => WAIT_STATES.has(t.state)),
+    done: rows.filter((t) => DONE_STATES.has(t.state)),
+  }), [rows]);
+
+  return (
+    <div className="p-4 sm:p-6 sf-fade-up">
+      <div className="flex items-center gap-3 mb-1">
+        <div className="text-xl font-extrabold">My tasks</div>
+        <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">{rows.length}</span>
+        <a href="http://localhost:5174" target="_blank" rel="noopener noreferrer"
+           className="ml-auto px-3 py-1.5 rounded-md bg-amber-500 text-slate-900 font-bold text-xs hover:bg-amber-400">
+          Open field app →
+        </a>
+      </div>
+      <div className="text-xs text-slate-500 mb-4">
+        {user?.name ?? 'Employee'} · field role. Submit photo-proof from the Mario field PWA, then it flows here for approval.
+      </div>
+      {err && <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{err}</div>}
+      {rows.length === 0 && (
+        <div className="p-10 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
+          <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-50 grid place-items-center text-3xl mb-3">✓</div>
+          <div className="text-slate-700 font-semibold">No tasks on your plate.</div>
+          <div className="text-xs text-slate-500 mt-1">Your supervisor will assign work soon.</div>
+        </div>
+      )}
+
+      {(['act', 'wait', 'done'] as const).map((g) => groups[g].length === 0 ? null : (
+        <section key={g} className="mb-5">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">
+            {g === 'act' ? 'Action needed' : g === 'wait' ? 'Awaiting approval' : 'Done'}
+            <span className="ml-2 text-slate-400">· {groups[g].length}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {groups[g].map((t) => (
+              <div key={t.id} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+                <div className="flex items-start gap-2">
+                  <div className={`w-12 h-12 rounded-lg shrink-0 ${tradeClass(t.trade)}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm leading-tight truncate">{t.title}</div>
+                    <div className="text-[11px] text-slate-500 truncate">{t.trade} · {t.location}</div>
+                    <div className="mt-1 inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono">{t.state}</div>
+                  </div>
+                </div>
+                <div className="mt-2 text-[10px] font-mono text-slate-400">
+                  {fmt(t.actualStart) || fmt(t.plannedStart)} → {fmt(t.actualEnd) || fmt(t.plannedEnd)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
@@ -957,7 +1112,7 @@ function TimesheetsToday({ headers }: { headers: () => HeadersInit }) {
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase tracking-wider">
             <tr>
-              <th className="text-left p-3">Worker</th>
+              <th className="text-left p-3">Employee</th>
               <th className="text-left p-3">IN</th>
               <th className="text-left p-3">LUNCH ▶</th>
               <th className="text-left p-3">LUNCH ◀</th>
@@ -1487,7 +1642,7 @@ function FinanceReports({ headers, canEdit }: { headers: () => HeadersInit; canE
                   </div>
                 ))}
                 {Object.keys(pnl.byRole).length === 0 && (
-                  <div className="text-slate-400">No punches yet — mock figures: worker 184h · supervisor 42h.</div>
+                  <div className="text-slate-400">No punches yet — mock figures: employee 184h · supervisor 42h.</div>
                 )}
               </div>
             </div>
@@ -1520,7 +1675,7 @@ function FinanceReports({ headers, canEdit }: { headers: () => HeadersInit; canE
           <div className="flex items-center justify-between mb-3">
             <div>
               <div className="font-bold text-slate-900">Payroll export</div>
-              <div className="text-[11px] text-slate-500">CSV: date, worker, role, hours, ₹/hr, pay</div>
+              <div className="text-[11px] text-slate-500">CSV: date, employee, role, hours, ₹/hr, pay</div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 items-end">
@@ -1741,7 +1896,7 @@ type Employee = {
   joiningDate: string | null; salaryMonthly: number | null;
 };
 
-const EMPLOYEE_ROLES = ['worker','supervisor','quality','manager','accounts','ceo'] as const;
+const EMPLOYEE_ROLES = ['employee','supervisor','quality','manager','accounts','ceo'] as const;
 
 function PeopleAdmin({ headers, canCreate }: { headers: () => HeadersInit; canCreate: boolean }) {
   const [rows, setRows] = useState<Employee[]>([]);
@@ -1833,7 +1988,7 @@ function NewEmployeeModal({ sites, headers, onClose, onSaved }: {
   sites: SiteRow[]; headers: () => HeadersInit; onClose: () => void; onSaved: () => void;
 }) {
   const [name, setName] = useState('');
-  const [role, setRole] = useState<typeof EMPLOYEE_ROLES[number]>('worker');
+  const [role, setRole] = useState<typeof EMPLOYEE_ROLES[number]>('employee');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [siteId, setSiteId] = useState<string>(sites[0]?.id ?? '');

@@ -145,7 +145,7 @@ export const timesheetEntries = pgTable('timesheet_entries', {
   userDayIdx: index('timesheet_user_idx').on(t.userId, t.punchedAt),
 }));
 
-// Per-task work segments. Opens when the worker starts (or restarts after rework / block)
+// Per-task work segments. Opens when the employee starts (or restarts after rework / block)
 // and closes when they submit proof or the task is blocked. activityType separates productive
 // work from waste so the Accounts ROI report can isolate procurement and quality penalties.
 export const taskTimeSegments = pgTable('task_time_segments', {

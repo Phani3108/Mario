@@ -2,7 +2,7 @@
  * Mario demo seed — Hyderabad market.
  *
  * Creates one org ("Sunrise Builders") with five real Hyderabad projects, each
- * geofenced to its actual neighbourhood, with a 1-supervisor + 3-worker crew,
+ * geofenced to its actual neighbourhood, with a 1-supervisor + 3-employee crew,
  * SOP-linked tasks across the full state machine (DRAFT → CLOSED including
  * IN_PROGRESS, PROOF_SUBMITTED, REWORK), one contract per site, four cost
  * rates. Idempotent: re-running upserts on (org name, site name, phone, email).
@@ -33,10 +33,10 @@ interface SiteSpec {
   lng: number;
   clientName: string;
   totalValueCr: number; // crores INR
-  // Crew: 1 supervisor + 3 workers. Numbers are appended to the +9100 prefix.
+  // Crew: 1 supervisor + 3 employees. Numbers are appended to the +9100 prefix.
   supervisorPhone: string;
   supervisorName: string;
-  workers: { name: string; phone: string }[];
+  employees: { name: string; phone: string }[];
   tasks: { title: string; trade: Trade; location: string; state: TaskState; offsetH: [number, number]; assigneeIdx?: number }[];
 }
 
@@ -52,7 +52,7 @@ const SITES: SiteSpec[] = [
     totalValueCr: 78,
     supervisorPhone: '+919000000110',
     supervisorName: 'P. Singh',
-    workers: [
+    employees: [
       { name: 'R. Kumar', phone: '+919000000111' },
       { name: 'S. Devi',  phone: '+919000000112' },
       { name: 'M. Yadav', phone: '+919000000113' },
@@ -76,7 +76,7 @@ const SITES: SiteSpec[] = [
     totalValueCr: 120,
     supervisorPhone: '+919000000120',
     supervisorName: 'V. Reddy',
-    workers: [
+    employees: [
       { name: 'N. Babu',    phone: '+919000000121' },
       { name: 'L. Prasad',  phone: '+919000000122' },
       { name: 'A. Khan',    phone: '+919000000123' },
@@ -99,7 +99,7 @@ const SITES: SiteSpec[] = [
     totalValueCr: 95,
     supervisorPhone: '+919000000130',
     supervisorName: 'K. Murthy',
-    workers: [
+    employees: [
       { name: 'J. Rao',   phone: '+919000000131' },
       { name: 'B. Lal',   phone: '+919000000132' },
       { name: 'T. Anand', phone: '+919000000133' },
@@ -123,7 +123,7 @@ const SITES: SiteSpec[] = [
     totalValueCr: 145,
     supervisorPhone: '+919000000140',
     supervisorName: 'H. Iyer',
-    workers: [
+    employees: [
       { name: 'C. Vinay',  phone: '+919000000141' },
       { name: 'P. Naidu',  phone: '+919000000142' },
       { name: 'S. Mahesh', phone: '+919000000143' },
@@ -148,7 +148,7 @@ const SITES: SiteSpec[] = [
     totalValueCr: 62,
     supervisorPhone: '+919000000150',
     supervisorName: 'D. Pillai',
-    workers: [
+    employees: [
       { name: 'G. Suresh',  phone: '+919000000151' },
       { name: 'V. Kiran',   phone: '+919000000152' },
       { name: 'N. Bhaskar', phone: '+919000000153' },
@@ -238,28 +238,28 @@ async function main() {
       await db.update(users).set({ siteId: site.id }).where(eq(users.id, supervisor.id));
     }
 
-    // Workers
-    const workerRows: { id: string }[] = [];
-    for (const w of spec.workers) {
+    // Employees
+    const employeeRows: { id: string }[] = [];
+    for (const w of spec.employees) {
       const existing = await db.select().from(users).where(eq(users.phone, w.phone));
       let row = existing.at(0);
       if (!row) {
         const [created] = await db.insert(users).values({
-          orgId: org.id, name: w.name, role: 'worker', phone: w.phone, siteId: site.id,
+          orgId: org.id, name: w.name, role: 'employee', phone: w.phone, siteId: site.id,
         }).returning();
         row = created;
-        console.log('  + worker', w.name);
+        console.log('  + employee', w.name);
       } else if (row.siteId !== site.id) {
         await db.update(users).set({ siteId: site.id }).where(eq(users.id, row.id));
       }
-      workerRows.push({ id: row.id });
+      employeeRows.push({ id: row.id });
     }
 
     // Skip task seeding if this site already has tasks (idempotent).
     const existingTasks = await db.select().from(tasks).where(eq(tasks.siteId, site.id));
     if (existingTasks.length === 0) {
       for (const t of spec.tasks) {
-        const assignee = t.assigneeIdx != null ? workerRows[t.assigneeIdx]?.id : null;
+        const assignee = t.assigneeIdx != null ? employeeRows[t.assigneeIdx]?.id : null;
         const actualStart =
           ['IN_PROGRESS', 'PROOF_SUBMITTED', 'SUPERVISOR_APPROVED', 'QUALITY_APPROVED',
            'MANAGER_APPROVED', 'CLIENT_ACKNOWLEDGED', 'CLOSED', 'REWORK'].includes(t.state)
@@ -341,7 +341,7 @@ async function main() {
   const existingRates = await db.select().from(costRates).where(eq(costRates.orgId, org.id));
   if (existingRates.length === 0) {
     await db.insert(costRates).values([
-      { orgId: org.id, role: 'worker',     hourlyRate: 220, currency: 'INR' },
+      { orgId: org.id, role: 'employee',     hourlyRate: 220, currency: 'INR' },
       { orgId: org.id, role: 'supervisor', hourlyRate: 450, currency: 'INR' },
       { orgId: org.id, role: 'quality',    hourlyRate: 600, currency: 'INR' },
       { orgId: org.id, role: 'manager',    hourlyRate: 950, currency: 'INR' },

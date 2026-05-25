@@ -8,10 +8,13 @@ import { apiFetch } from '../lib/api';
 const DEV_AUTH = true; // Force dev login for all environments
 
 const DEV_PRESETS = [
-  { id: 'quality@siteflow.local',    label: 'Quality',     icon: '✦' },
+  { id: 'ceo@siteflow.local',        label: 'CEO',         icon: '◆' },
+  { id: 'accounts@siteflow.local',   label: 'Accounts',    icon: '₹' },
   { id: 'manager@siteflow.local',    label: 'Manager',     icon: '◈' },
+  { id: 'quality@siteflow.local',    label: 'Quality',     icon: '✦' },
+  { id: '+919000000110',             label: 'Supervisor',  icon: '▲' },
+  { id: '+919000000111',             label: 'Employee',    icon: '●' },
   { id: 'client@siteflow.local',     label: 'Client',      icon: '◉' },
-  { id: '+919000000010',             label: 'Supervisor',  icon: '▲' },
 ];
 
 type Step = 'phone' | 'code' | 'devLogin';
@@ -131,8 +134,10 @@ export default function LoginPage() {
             by four people who put their name on it. <span className="text-slate-100 font-semibold">Add a project in a minute. Add a tower in five.</span>
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
+            {/* Logged-in users get the 1-step modal at /approvals?new=site.
+                First-time visitors get the full org-signup wizard at /onboard. */}
             <a
-              href="/onboard"
+              href={typeof window !== 'undefined' && localStorage.getItem('sf_token') ? '/approvals?new=site' : '/onboard'}
               className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold tracking-wide shadow-lg shadow-amber-500/20 transition"
             >
               + Add a project →
@@ -270,7 +275,7 @@ export default function LoginPage() {
           {[
             {
               title: 'The photograph that doesn’t lie.',
-              body: 'Every proof is watermarked client-side with task ID, GPS, and timestamp before it leaves the worker’s phone. By the time it reaches your dashboard, it’s already too honest to argue with.',
+              body: 'Every proof is watermarked client-side with task ID, GPS, and timestamp before it leaves the employee’s phone. By the time it reaches your dashboard, it’s already too honest to argue with.',
               icon: '▣',
             },
             {
@@ -300,7 +305,7 @@ export default function LoginPage() {
           <div>
             <div className="text-[10px] uppercase tracking-[0.3em] text-slate-500 mb-2">The chain</div>
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              {['Worker', 'Supervisor', 'Quality', 'Manager', 'Client'].map((s, i, a) => (
+              {['Employee', 'Supervisor', 'Quality', 'Manager', 'Client'].map((s, i, a) => (
                 <div key={s} className="flex items-center gap-2 sf-fade-up" style={{ animationDelay: `${0.3 + i * 0.08}s` }}>
                   <span className="px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-200 font-semibold">{s}</span>
                   {i < a.length - 1 && <span className="text-amber-500/60">›</span>}
@@ -309,7 +314,7 @@ export default function LoginPage() {
             </div>
           </div>
           <div className="text-[13px] text-slate-400 max-w-xs">
-            First 50 tasks and 14 days free. ₹49 per worker per month after that. No demo seats, no annual contracts.
+            First 50 tasks and 14 days free. ₹49 per employee per month after that. No demo seats, no annual contracts.
           </div>
         </div>
       </section>

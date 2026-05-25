@@ -37,14 +37,14 @@ async function decorateTasks<T extends { id: string; sopProtocolId: string | nul
 
 export async function taskRoutes(app: FastifyInstance) {
   // List tasks the caller can see.
-  // worker → tasks assigned to them
+  // employee → tasks assigned to them
   // supervisor/quality/manager → all tasks at their site
   // others → empty (extend later)
   app.get('/tasks', { preHandler: [app.authenticate] }, async (req) => {
     const db = getDb();
     const u = req.user;
     let rows;
-    if (u.role === 'worker') {
+    if (u.role === 'employee') {
       rows = await db.select().from(tasks)
         .where(eq(tasks.assigneeUserId, u.sub))
         .orderBy(desc(tasks.updatedAt));
@@ -163,7 +163,7 @@ export async function taskRoutes(app: FastifyInstance) {
     return { task: decorated, proofs, audit };
   });
 
-  // Worker starts a task (records actualStart, transitions ASSIGNED|REWORK → IN_PROGRESS)
+  // Employee starts a task (records actualStart, transitions ASSIGNED|REWORK → IN_PROGRESS)
   app.post('/tasks/:id/start', {
     preHandler: [app.authenticate],
     schema: {
@@ -264,7 +264,7 @@ export async function taskRoutes(app: FastifyInstance) {
     return updated;
   });
 
-  // Worker accepts an assigned task. Starts the acceptance clock; START still records actualStart.
+  // Employee accepts an assigned task. Starts the acceptance clock; START still records actualStart.
   app.post('/tasks/:id/accept', { preHandler: [app.authenticate] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const u = req.user;

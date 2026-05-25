@@ -12,7 +12,7 @@ Launch market: **Hyderabad.** Expandable to any developer in any city.
 
 | | |
 |---|---|
-| **The photograph that doesn't lie.** | Every proof is watermarked client-side with task ID, GPS, and timestamp **before** it leaves the worker's phone. By the time it reaches your dashboard, it's already too honest to argue with. |
+| **The photograph that doesn't lie.** | Every proof is watermarked client-side with task ID, GPS, and timestamp **before** it leaves the employee's phone. By the time it reaches your dashboard, it's already too honest to argue with. |
 | **Four signatures. Four levels of conscience.** | Supervisor → Quality → Manager → Client. Each one signs with their name. After three rejections, the task escalates automatically. Defects don't walk past four people. |
 | **Payroll that matches reality.** | Hours billed are hours photographed on site. Inside the geofence, or you don't get the minute. The math at the end of the month is the math the foreman saw at the end of the day. |
 
@@ -24,7 +24,7 @@ Launch market: **Hyderabad.** Expandable to any developer in any city.
 - 🗺️ **Geofence (150 m default, per-site override)** — haversine distance computed server-side
 - ✅ **Four-step approval state machine** with auto-skip for non-sampled quality and auto-escalation on three rejects
 - 🏢 **Org branding** — logo upload, accent colour, primary city, currency, geofence default
-- 🧑‍🔧 **Sites & crews** — N projects per org, supervisor + workers per site, desk roles (quality / manager / client / CEO / accounts)
+- 🧑‍🔧 **Sites & crews** — N projects per org, supervisor + employees per site, desk roles (quality / manager / client / CEO / accounts)
 - 📋 **SOP library** — six trades pre-seeded with instructions, required tests, sample rate
 - ⏱️ **Timesheets** — punch in/out with selfie and GPS, lunch breaks, geofence flag
 - 💰 **Finance** — contracts, hourly cost-rates per role, site P&L, payroll CSV export
@@ -73,7 +73,7 @@ Then open:
 | App   | URL                       | What's there                         |
 |-------|---------------------------|--------------------------------------|
 | Web   | http://localhost:3000     | Landing + onboard + desk dashboard   |
-| Field | http://localhost:5174     | Worker / supervisor PWA              |
+| Field | http://localhost:5174     | Employee / supervisor PWA              |
 | API   | http://localhost:4000     | Fastify + Drizzle                    |
 | MinIO | http://localhost:9001     | S3 console (`siteflow` / `siteflowsecret`) |
 
@@ -83,12 +83,12 @@ Then open:
 
 ## 🔐 Dev sign-in (no OTP needed)
 
-`DEV_AUTH=true` in `.env` enables a dev login that accepts any seeded account with `devCode: '000000'`. The web landing page shows preset buttons for the four desk roles; for worker/supervisor use the field PWA at `:5174`.
+`DEV_AUTH=true` in `.env` enables a dev login that accepts any seeded account with `devCode: '000000'`. Both the web landing page and the field PWA show preset buttons for **all seven personas** (Employee, Supervisor, Quality, Manager, Accounts, CEO, Client) — pick one, click Sign in, you're in.
 
 | Role        | Login                       | Site                              |
 |-------------|-----------------------------|-----------------------------------|
-| Worker      | `+919000000111` (R. Kumar)  | My Home Bhooja – Tower 4          |
-| Worker      | `+919000000131` (J. Rao)    | Rajapushpa Atria – Phase 2        |
+| Employee      | `+919000000111` (R. Kumar)  | My Home Bhooja – Tower 4          |
+| Employee      | `+919000000131` (J. Rao)    | Rajapushpa Atria – Phase 2        |
 | Supervisor  | `+919000000110` (P. Singh)  | My Home Bhooja – Tower 4          |
 | Supervisor  | `+919000000140` (H. Iyer)   | Prestige High Fields – Tower 6    |
 | Quality     | `quality@siteflow.local`    | (org-wide)                        |
@@ -99,13 +99,32 @@ Then open:
 
 Set `DEV_AUTH=false` to lock the door and require the real MSG91 OTP path.
 
+### What each persona sees (role-filtered dashboards)
+
+The sidebar narrows to the persona's actual job — nobody gets a tab they can't act on.
+
+| Persona | Default landing | Sidebar |
+|---|---|---|
+| **Employee** | My tasks | My tasks |
+| **Supervisor** | Approvals | Approvals · Tasks · Timesheets · People · Rework |
+| **Quality** | Approvals | Approvals · SOP library · Rework · Tasks |
+| **Manager** | Approvals | Approvals · Tasks · Timesheets · SOP · Rework · Reports · Sites · People · Outbox |
+| **Accounts** | Timesheets | Timesheets · Reports · Outbox |
+| **CEO** | Reports | Reports · Sites · People · Outbox · Tasks · Approvals |
+| **Client** | Approvals | Approvals · Reports |
+
+### Adding a project
+
+- **Logged in?** Click `+ Add a project` on the landing — or `+ New project` in the dashboard top bar — and a single modal asks for name, address, lat/lng, geofence radius. POSTs `/sites`. Done.
+- **First-time signup?** `+ Add a project` opens the 5-step org wizard at `/onboard`. In demo mode the phone-OTP step is **skipped entirely** with a green banner; everywhere else it sends a real MSG91 OTP (when keys are wired).
+
 ---
 
 ## 🌆 Seeded projects (Hyderabad)
 
 One org — **Sunrise Builders Pvt Ltd** — across five real Hyderabad residential developments. Each is geofenced to its actual neighbourhood:
 
-| Project                                | Neighbourhood   | Lat, Lng              | Crew (1 sup + 3 workers) | Tasks |
+| Project                                | Neighbourhood   | Lat, Lng              | Crew (1 sup + 3 employees) | Tasks |
 |----------------------------------------|-----------------|-----------------------|--------------------------|-------|
 | My Home Bhooja – Tower 4               | Hitech City     | 17.4474, 78.3762      | P. Singh + 3             | 7     |
 | Aparna Sarovar Zenith – Block B        | Nallagandla     | 17.4732, 78.3142      | V. Reddy + 3             | 6     |
@@ -120,7 +139,7 @@ Tasks span the full state machine (`DRAFT`, `ASSIGNED`, `IN_PROGRESS`, `PROOF_SU
 ## 🧪 End-to-end demo loop
 
 1. **Web**: open <http://localhost:3000>, click **Supervisor** on the login card → lands on dashboard, sees **My Home Bhooja – Tower 4** in the sidebar.
-2. **Field**: open <http://localhost:5174>, dev-login as worker `+919000000111`. Tap **▶ START** on an `IN_PROGRESS` task. Allow geolocation when prompted.
+2. **Field**: open <http://localhost:5174>, dev-login as employee `+919000000111`. Tap **▶ START** on an `IN_PROGRESS` task. Allow geolocation when prompted.
 3. Tap **📷 SUBMIT PROOF**, allow camera, capture a frame. (Desktop webcams work too — the proof is watermarked with task ID + GPS + timestamp before upload.)
 4. **Web → Approval queue** as `+919000000110` (supervisor) → click ✓ → state advances to `SUPERVISOR_APPROVED`.
 5. Sign out → sign in as `quality@siteflow.local` → approve → as `manager@siteflow.local` → approve → as `client@siteflow.local` → approve. State: `CLOSED`.

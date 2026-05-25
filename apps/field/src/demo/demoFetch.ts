@@ -37,7 +37,7 @@ const PENDING_FOR_ROLE: Record<Role, TaskState[]> = {
   quality:    ['SUPERVISOR_APPROVED'],
   manager:    ['QUALITY_APPROVED'],
   client:     ['MANAGER_APPROVED'],
-  worker: [], ceo: [], accounts: [],
+  employee: [], ceo: [], accounts: [],
 };
 
 function decorate(t: Task): Task {
@@ -102,7 +102,7 @@ export async function demoFetch(input: string, init: RequestInit = {}): Promise<
   if (path === '/users' && method === 'POST') {
     const u = {
       id: newId('user'), orgId: ORG.id, name: body?.name ?? 'New user',
-      role: (body?.role ?? 'worker') as Role,
+      role: (body?.role ?? 'employee') as Role,
       phone: body?.phone ?? null, email: body?.email ?? null,
       siteId: body?.siteId ?? null, active: true,
     };

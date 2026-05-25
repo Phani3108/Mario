@@ -2,7 +2,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarioMark } from '../../components/MarioLogo';
-import { apiFetch } from '../../lib/api';
+import { apiFetch, isDemo } from '../../lib/api';
+
+// Detect demo mode at module load so the JSX below can branch on it.
+// `isDemo()` is safe to call on the server (returns false) and on the client
+// (checks NEXT_PUBLIC_DEMO + window.location).
+const DEMO = typeof window !== 'undefined' && isDemo();
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -182,11 +187,27 @@ export default function OnboardPage() {
         {step === 1 && (
           <section className="space-y-4">
             <h1 className="text-2xl font-extrabold">Who's signing up?</h1>
-            <p className="text-sm text-slate-400">We'll text you a code on WhatsApp/SMS to confirm.</p>
+            <p className="text-sm text-slate-400">
+              {DEMO
+                ? 'Phone verification is skipped in the demo. Wire MSG91 to require real OTP.'
+                : "We'll text you a code on WhatsApp/SMS to confirm."}
+            </p>
+            {DEMO && (
+              <div className="text-xs px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-200">
+                <b>Demo mode:</b> phone verification is skipped. Your "org" lives in this browser only.
+              </div>
+            )}
             <Field label="Your name" value={founderName} onChange={setFounderName} placeholder="e.g. Anita Reddy" />
             <Field label="Phone (with country code)" value={phone} onChange={(v) => setPhone(v.replace(/[^\d+]/g, ''))} placeholder="+91XXXXXXXXXX" />
             <Field label="Email (optional)" value={email} onChange={setEmail} placeholder="founder@yourcompany.in" />
-            {!otpSent ? (
+            {DEMO ? (
+              <button
+                disabled={!founderName || phone.length < 8}
+                onClick={() => { setSignupToken('demo'); setStep(2); }}
+                className="w-full py-3 rounded-xl bg-amber-500 text-slate-900 font-extrabold disabled:opacity-50">
+                Continue →
+              </button>
+            ) : !otpSent ? (
               <button disabled={busy || !founderName || phone.length < 8} onClick={sendSignupOtp}
                 className="w-full py-3 rounded-xl bg-amber-500 text-slate-900 font-extrabold disabled:opacity-50">
                 {busy ? 'Sending…' : 'Send code →'}
@@ -280,7 +301,7 @@ export default function OnboardPage() {
                   <option value="quality">Quality</option>
                   <option value="manager">Manager</option>
                   <option value="accounts">Accounts</option>
-                  <option value="worker">Worker</option>
+                  <option value="employee">Employee</option>
                   <option value="client">Client</option>
                 </select>
               </div>

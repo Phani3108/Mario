@@ -3,7 +3,7 @@ type Lang = 'en' | 'hi';
 const DICT = {
   signIn:        { en: 'Sign in',        hi: 'साइन इन' },
   signInArrow:   { en: 'SIGN IN →',      hi: 'साइन इन →' },
-  workerOrSup:   { en: 'Worker or supervisor', hi: 'मज़दूर या सुपरवाइज़र' },
+  employeeOrSup:   { en: 'Employee or supervisor', hi: 'मज़दूर या सुपरवाइज़र' },
   phone:         { en: 'Phone',          hi: 'फ़ोन' },
   signOut:       { en: 'Sign out',       hi: 'साइन आउट' },
   todayBanner:   { en: 'Today',          hi: 'आज' },

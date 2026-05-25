@@ -8,7 +8,7 @@
  * reason about. The dev API issues real UUIDs in production mode.
  */
 
-export type Role = 'worker' | 'supervisor' | 'quality' | 'manager' | 'client' | 'ceo' | 'accounts';
+export type Role = 'employee' | 'supervisor' | 'quality' | 'manager' | 'client' | 'ceo' | 'accounts';
 export type TaskState =
   | 'DRAFT' | 'ASSIGNED' | 'ACCEPTED' | 'IN_PROGRESS' | 'PROOF_SUBMITTED'
   | 'SUPERVISOR_APPROVED' | 'QUALITY_APPROVED' | 'MANAGER_APPROVED'
@@ -37,7 +37,7 @@ const HOURS = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString();
 interface SiteSpec {
   id: string; name: string; address: string; lat: number; lng: number; clientName: string; totalValueCr: number;
   supervisor: { id: string; name: string; phone: string };
-  workers: { id: string; name: string; phone: string }[];
+  employees: { id: string; name: string; phone: string }[];
   tasks: { id: string; title: string; trade: string; location: string; state: TaskState; offsetH: [number, number]; assigneeIdx?: number }[];
 }
 
@@ -46,7 +46,7 @@ const SITES_SPEC: SiteSpec[] = [
     id: 'site_bhooja', name: 'My Home Bhooja – Tower 4', address: 'Hitech City, Hyderabad 500081',
     lat: 17.4474, lng: 78.3762, clientName: 'My Home Constructions Pvt Ltd', totalValueCr: 78,
     supervisor: { id: 'u_sup_bhooja', name: 'P. Singh', phone: '+919000000110' },
-    workers: [
+    employees: [
       { id: 'u_w_bhooja_1', name: 'R. Kumar', phone: '+919000000111' },
       { id: 'u_w_bhooja_2', name: 'S. Devi',  phone: '+919000000112' },
       { id: 'u_w_bhooja_3', name: 'M. Yadav', phone: '+919000000113' },
@@ -65,7 +65,7 @@ const SITES_SPEC: SiteSpec[] = [
     id: 'site_aparna', name: 'Aparna Sarovar Zenith – Block B', address: 'Nallagandla, Hyderabad 500019',
     lat: 17.4732, lng: 78.3142, clientName: 'Aparna Constructions & Estates', totalValueCr: 120,
     supervisor: { id: 'u_sup_aparna', name: 'V. Reddy', phone: '+919000000120' },
-    workers: [
+    employees: [
       { id: 'u_w_aparna_1', name: 'N. Babu',   phone: '+919000000121' },
       { id: 'u_w_aparna_2', name: 'L. Prasad', phone: '+919000000122' },
       { id: 'u_w_aparna_3', name: 'A. Khan',   phone: '+919000000123' },
@@ -83,7 +83,7 @@ const SITES_SPEC: SiteSpec[] = [
     id: 'site_raja', name: 'Rajapushpa Atria – Phase 2', address: 'Kokapet, Hyderabad 500075',
     lat: 17.4126, lng: 78.3343, clientName: 'Rajapushpa Properties Pvt Ltd', totalValueCr: 95,
     supervisor: { id: 'u_sup_raja', name: 'K. Murthy', phone: '+919000000130' },
-    workers: [
+    employees: [
       { id: 'u_w_raja_1', name: 'J. Rao',   phone: '+919000000131' },
       { id: 'u_w_raja_2', name: 'B. Lal',   phone: '+919000000132' },
       { id: 'u_w_raja_3', name: 'T. Anand', phone: '+919000000133' },
@@ -102,7 +102,7 @@ const SITES_SPEC: SiteSpec[] = [
     id: 'site_pres', name: 'Prestige High Fields – Tower 6', address: 'Gachibowli, Hyderabad 500032',
     lat: 17.4401, lng: 78.3489, clientName: 'Prestige Estates Projects Ltd', totalValueCr: 145,
     supervisor: { id: 'u_sup_pres', name: 'H. Iyer', phone: '+919000000140' },
-    workers: [
+    employees: [
       { id: 'u_w_pres_1', name: 'C. Vinay',  phone: '+919000000141' },
       { id: 'u_w_pres_2', name: 'P. Naidu',  phone: '+919000000142' },
       { id: 'u_w_pres_3', name: 'S. Mahesh', phone: '+919000000143' },
@@ -122,7 +122,7 @@ const SITES_SPEC: SiteSpec[] = [
     id: 'site_suma', name: 'Sumadhura Acropolis – Penthouse Block', address: 'Gachibowli, Hyderabad 500032',
     lat: 17.4378, lng: 78.3520, clientName: 'Sumadhura Infracon Pvt Ltd', totalValueCr: 62,
     supervisor: { id: 'u_sup_suma', name: 'D. Pillai', phone: '+919000000150' },
-    workers: [
+    employees: [
       { id: 'u_w_suma_1', name: 'G. Suresh',  phone: '+919000000151' },
       { id: 'u_w_suma_2', name: 'V. Kiran',   phone: '+919000000152' },
       { id: 'u_w_suma_3', name: 'N. Bhaskar', phone: '+919000000153' },
@@ -164,13 +164,13 @@ function buildInitialStore() {
 
   const fieldUsers: UserRow[] = SITES_SPEC.flatMap((s) => [
     { id: s.supervisor.id, orgId: ORG_ID, name: s.supervisor.name, role: 'supervisor' as Role, phone: s.supervisor.phone, email: null, siteId: s.id, active: true },
-    ...s.workers.map((w) => ({ id: w.id, orgId: ORG_ID, name: w.name, role: 'worker' as Role, phone: w.phone, email: null, siteId: s.id, active: true })),
+    ...s.employees.map((w) => ({ id: w.id, orgId: ORG_ID, name: w.name, role: 'employee' as Role, phone: w.phone, email: null, siteId: s.id, active: true })),
   ]);
 
   const users = [...deskUsers, ...fieldUsers];
 
   const tasks: Task[] = SITES_SPEC.flatMap((s) => s.tasks.map((t): Task => {
-    const assigneeId = t.assigneeIdx != null ? s.workers[t.assigneeIdx]!.id : null;
+    const assigneeId = t.assigneeIdx != null ? s.employees[t.assigneeIdx]!.id : null;
     const actualStart = ['IN_PROGRESS', 'PROOF_SUBMITTED', 'SUPERVISOR_APPROVED', 'QUALITY_APPROVED', 'MANAGER_APPROVED', 'CLIENT_ACKNOWLEDGED', 'CLOSED', 'REWORK'].includes(t.state) ? HOURS(t.offsetH[0]) : null;
     const actualEnd = ['CLOSED', 'CLIENT_ACKNOWLEDGED', 'MANAGER_APPROVED'].includes(t.state) ? HOURS(t.offsetH[1]) : null;
     const trade = t.trade.toLowerCase();
@@ -197,7 +197,7 @@ function buildInitialStore() {
   }));
 
   const costRates: CostRate[] = [
-    { id: 'rate_w',  orgId: ORG_ID, role: 'worker',     hourlyRate: 220, currency: 'INR' },
+    { id: 'rate_w',  orgId: ORG_ID, role: 'employee',     hourlyRate: 220, currency: 'INR' },
     { id: 'rate_s',  orgId: ORG_ID, role: 'supervisor', hourlyRate: 450, currency: 'INR' },
     { id: 'rate_q',  orgId: ORG_ID, role: 'quality',    hourlyRate: 600, currency: 'INR' },
     { id: 'rate_m',  orgId: ORG_ID, role: 'manager',    hourlyRate: 950, currency: 'INR' },

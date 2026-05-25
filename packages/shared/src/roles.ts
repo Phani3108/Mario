@@ -1,5 +1,5 @@
 export const ROLES = [
-  'worker',
+  'employee',
   'supervisor',
   'quality',
   'manager',
@@ -10,7 +10,7 @@ export const ROLES = [
 
 export type Role = (typeof ROLES)[number];
 
-export const FIELD_ROLES: ReadonlySet<Role> = new Set(['worker', 'supervisor']);
+export const FIELD_ROLES: ReadonlySet<Role> = new Set(['employee', 'supervisor']);
 export const DESK_ROLES: ReadonlySet<Role> = new Set([
   'quality',
   'manager',

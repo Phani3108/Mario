@@ -50,7 +50,7 @@ function LangToggle() {
 }
 
 function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
-  const [devId, setDevId] = useState('quality@siteflow.local');
+  const [devId, setDevId] = useState('+919000000111');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -58,10 +58,15 @@ function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
     e.preventDefault();
     setBusy(true); setErr(null);
     try {
-      // Simulate login with a mock token/user
-      const data = { token: 'dev-token', user: { id: devId, name: devId, role: 'manager' } };
+      // Route through api() so demo mode hits demoFetch's /auth/login and
+      // returns the real seeded user (correct role + siteId), not a fake
+      // hard-coded 'manager'.
+      const data = await api<{ token: string; user: any }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ phoneOrEmail: devId, devCode: '000000' }),
+      });
       onLogin(data.token, data.user);
-    } catch (e: any) { setErr(e.message); }
+    } catch (e: any) { setErr(e.message ?? 'sign-in failed'); }
     finally { setBusy(false); }
   }
 
@@ -100,10 +105,11 @@ function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
             className="w-full mt-1 px-3 py-3 rounded-lg bg-slate-950 border border-slate-700 text-base text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-amber-500/60"
           >
             {[
+              { id: '+919000000111', label: 'Employee', icon: '●' },
+              { id: '+919000000110', label: 'Supervisor', icon: '▲' },
               { id: 'quality@siteflow.local', label: 'Quality', icon: '✦' },
               { id: 'manager@siteflow.local', label: 'Manager', icon: '◈' },
               { id: 'client@siteflow.local', label: 'Client', icon: '◉' },
-              { id: '+919000000010', label: 'Supervisor', icon: '▲' },
             ].map(u => (
               <option key={u.id} value={u.id}>{u.icon} {u.label}</option>
             ))}
@@ -511,7 +517,7 @@ function Permissions({ onDone }: { onDone: () => void }) {
         <MarioMark size={44} />
         <div>
           <div className="text-2xl font-bold text-amber-400">Mario</div>
-          <div className="text-xs text-slate-400">Field worker app</div>
+          <div className="text-xs text-slate-400">Field employee app</div>
         </div>
       </div>
       <div className="px-5 flex-1 space-y-3">
