@@ -5,6 +5,7 @@ import { MarioMark } from '../../components/MarioLogo';
 import { apiFetch, isDemo } from '../../lib/api';
 import { useT, localizedRole } from '../../lib/i18n';
 import { LangToggle } from '../../components/LangToggle';
+import { QualityView } from './QualityView';
 
 type Task = {
   id: string;
@@ -96,6 +97,8 @@ export default function ApprovalsPage() {
   const [sitesList, setSitesList] = useState<Site[]>([]);
   const [orgInfo, setOrgInfo] = useState<{ name: string; logoUrl: string | null }>({ name: 'Mario', logoUrl: null });
   const [showNewSite, setShowNewSite] = useState(false);
+  // For Quality view's WORKER column — keyed by user id.
+  const [allUsers, setAllUsers] = useState<{ id: string; name: string }[]>([]);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('sf_token') : null;
 
@@ -118,10 +121,11 @@ export default function ApprovalsPage() {
         setView((cur) => (cur === 'approvals' && defaultView !== 'approvals' ? defaultView : cur));
       }
 
-      const [pendingRes, sitesRes, orgRes] = await Promise.all([
+      const [pendingRes, sitesRes, orgRes, usersRes] = await Promise.all([
         apiFetch(`/approvals/pending`, { headers: headers() }),
         apiFetch(`/sites`, { headers: headers() }),
         apiFetch(`/orgs/me`, { headers: headers() }),
+        apiFetch(`/users`, { headers: headers() }),
       ]);
       if (pendingRes.status === 401 || sitesRes.status === 401) {
         localStorage.removeItem('sf_token');
@@ -137,6 +141,10 @@ export default function ApprovalsPage() {
       if (orgRes.ok) {
         const data: { org: { name: string }; logoUrl: string | null } = await orgRes.json();
         setOrgInfo({ name: data.org?.name ?? 'Mario', logoUrl: data.logoUrl ?? null });
+      }
+      if (usersRes.ok) {
+        const j = await usersRes.json().catch(() => []);
+        setAllUsers(Array.isArray(j) ? j.map((u: any) => ({ id: u.id, name: u.name })) : []);
       }
     } catch (e: any) {
       setError(e?.message ?? 'failed to load dashboard');
@@ -373,6 +381,13 @@ export default function ApprovalsPage() {
             <PlaceholderView view={view} onBack={() => setView('approvals')} />
           ) : sitesList.length === 0 ? (
             <EmptySite onBack={() => setShowNewSite(true)} />
+          ) : user?.role === 'quality' ? (
+            <QualityView
+              headers={headers}
+              initialTasks={tasks as any}
+              userMap={Object.fromEntries(allUsers.map((u) => [u.id, u.name]))}
+              onChanged={load}
+            />
           ) : (
           <>
           {/* Filter bar */}
