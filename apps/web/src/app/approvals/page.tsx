@@ -6,6 +6,7 @@ import { apiFetch, isDemo } from '../../lib/api';
 import { useT, localizedRole } from '../../lib/i18n';
 import { LangToggle } from '../../components/LangToggle';
 import { QualityView } from './QualityView';
+import { SupervisorView } from './SupervisorView';
 
 type Task = {
   id: string;
@@ -383,6 +384,13 @@ export default function ApprovalsPage() {
             <EmptySite onBack={() => setShowNewSite(true)} />
           ) : user?.role === 'quality' ? (
             <QualityView
+              headers={headers}
+              initialTasks={tasks as any}
+              userMap={Object.fromEntries(allUsers.map((u) => [u.id, u.name]))}
+              onChanged={load}
+            />
+          ) : user?.role === 'supervisor' ? (
+            <SupervisorView
               headers={headers}
               initialTasks={tasks as any}
               userMap={Object.fromEntries(allUsers.map((u) => [u.id, u.name]))}

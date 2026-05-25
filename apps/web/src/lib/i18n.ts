@@ -213,6 +213,21 @@ const DICT = {
   qSelectedOf:     { en: 'selected of',       hi: 'चुने गए, कुल' },
   qNoTaskSelected: { en: 'Click a row to load its SOP reference, or use J/K to navigate.',
                      hi: 'एक पंक्ति पर क्लिक करें ताकि SOP संदर्भ लोड हो, या J/K से नेविगेट करें।' },
+
+  // ─── Supervisor approval cards (mockup #4) ────────────────────────────────
+  supPendingChip:   { en: 'PENDING',         hi: 'बाक़ी' },
+  supRiskSuffix:    { en: 'RISK',            hi: 'जोखिम' },
+  supGeoOk:         { en: 'GEO ✓',           hi: 'GPS ✓' },
+  supGeoOut:        { en: 'GEO ⚠ outside',   hi: 'GPS ⚠ बाहर' },
+  supSelectAll:     { en: 'Select all',      hi: 'सब चुनें' },
+  supClearAll:      { en: 'Clear',           hi: 'साफ़ करें' },
+  supBulkApprove:   { en: 'Bulk approve',    hi: 'सब मंज़ूर' },
+  supApproveBtn:    { en: '✓ APPROVE',       hi: '✓ मंज़ूर' },
+  supRejectBtn:     { en: '✗ REJECT',        hi: '✗ नामंज़ूर' },
+  supEmptyTitle:    { en: 'Inbox zero.',     hi: 'कुछ बाक़ी नहीं।' },
+  supEmptySub:      { en: 'Nothing waiting on your approval right now. Your site is on schedule.',
+                      hi: 'अभी कुछ भी आपकी मंज़ूरी पर नहीं है। आपकी साइट समय पर है।' },
+  supReworkTag:     { en: 'rework',          hi: 'पुनः कार्य' },
 } as const;
 
 type Key = keyof typeof DICT;
