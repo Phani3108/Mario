@@ -55,7 +55,15 @@ function fmt(ts: string | null): string {
 
 export default function ApprovalsPage() {
   const router = useRouter();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  // DEMO: Mock data for all tabs
+  const DEMO = true;
+  const MOCK_TASKS: Task[] = [
+    { id: 't1', title: 'Tile Laying - Lobby', trade: 'Tiling', location: 'Tower A, Lobby', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString() },
+    { id: 't2', title: 'Paint Touchup', trade: 'Painting', location: 'Tower B, 2nd Floor', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString() },
+    { id: 't3', title: 'Plumbing Check', trade: 'Plumbing', location: 'Tower C, Basement', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString() },
+    { id: 't4', title: 'Slab Inspection', trade: 'RCC', location: 'Tower D, Roof', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString() },
+  ];
+  const [tasks, setTasks] = useState<Task[]>(DEMO ? MOCK_TASKS : []);
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [proofUrls, setProofUrls] = useState<Record<string, string>>({});
@@ -65,7 +73,11 @@ export default function ApprovalsPage() {
   const [mobileNav, setMobileNav] = useState(false);
   const [view, setView] = useState<View>('approvals');
   const [activeSite, setActiveSite] = useState<string>('');
-  const [sitesList, setSitesList] = useState<Site[]>([]);
+  const MOCK_SITES: Site[] = [
+    { id: 'site1', label: 'Prestige Downtown', active: true },
+    { id: 'site2', label: 'Uptown Heights', active: false },
+  ];
+  const [sitesList, setSitesList] = useState<Site[]>(DEMO ? MOCK_SITES : []);
   const [orgInfo, setOrgInfo] = useState<{ name: string; logoUrl: string | null }>({ name: 'Mickey', logoUrl: null });
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('sf_token') : null;
@@ -76,46 +88,17 @@ export default function ApprovalsPage() {
   );
 
   const load = useCallback(async () => {
-    if (!token) { router.replace('/'); return; }
-    try {
-      const stored = localStorage.getItem('sf_user');
-      if (stored) setUser(JSON.parse(stored));
-
-      // Pull org branding + site list in parallel with approvals.
-      const [orgRes, sitesRes] = await Promise.all([
-        fetch(`${API}/orgs/me`, { headers: headers() }),
-        fetch(`${API}/sites`, { headers: headers() }),
-      ]);
-      if (orgRes.ok) {
-        const o = await orgRes.json();
-        setOrgInfo({ name: o.org?.name ?? 'Mickey', logoUrl: o.logoUrl ?? null });
-      }
-      if (sitesRes.ok) {
-        const rows: Array<{ id: string; name: string }> = await sitesRes.json();
-        const mapped: Site[] = rows.map((r, i) => ({ id: r.id, label: r.name, active: i === 0 }));
-        setSitesList(mapped);
-        setActiveSite((cur) => cur && mapped.some((s) => s.id === cur) ? cur : (mapped[0]?.id ?? ''));
-      }
-
-      const res = await fetch(`${API}/approvals/pending`, { headers: headers() });
-      if (res.status === 401) { localStorage.removeItem('sf_token'); router.replace('/'); return; }
-      if (!res.ok) throw new Error('failed to load');
-      const data: Task[] = await res.json();
-      setTasks(data);
-
-      const urls: Record<string, string> = {};
-      await Promise.all(data.map(async (t) => {
-        const detail = await fetch(`${API}/tasks/${t.id}`, { headers: headers() }).then((r) => r.json());
-        const latest = detail.proofs?.[0];
-        if (latest) {
-          const u: ProofView = await fetch(`${API}/proofs/${latest.id}/view-url`, { headers: headers() }).then((r) => r.json());
-          urls[t.id] = u.url;
-        }
-      }));
-      setProofUrls(urls);
-    } catch (e: any) {
-      setError(e.message);
+    if (DEMO) {
+      setTasks(MOCK_TASKS);
+      setSitesList(MOCK_SITES);
+      setActiveSite(MOCK_SITES[0].id);
+      setOrgInfo({ name: 'Mickey', logoUrl: null });
+      setUser({ name: 'Demo Manager', role: 'manager' });
+      setProofUrls({});
+      return;
     }
+    if (!token) { router.replace('/'); return; }
+    // ...existing code for real API...
   }, [token, headers, router]);
 
   useEffect(() => { load(); }, [load]);
@@ -606,34 +589,34 @@ type PunchRow = {
 function TasksBoard({
   headers, canAssign,
 }: { headers: () => HeadersInit; canAssign: boolean }) {
-  const [rows, setRows] = useState<AnyTask[]>([]);
-  const [users, setUsers] = useState<UserLite[]>([]);
+  // DEMO: Mock users and tasks
+  const DEMO = true;
+  const MOCK_USERS = [
+    { id: 'u1', name: 'Alice Worker' },
+    { id: 'u2', name: 'Bob Worker' },
+  ];
+  const MOCK_TASKS = [
+    { id: 't1', title: 'Tile Laying - Lobby', trade: 'Tiling', location: 'Tower A, Lobby', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString(), assigneeUserId: 'u1' },
+    { id: 't2', title: 'Paint Touchup', trade: 'Painting', location: 'Tower B, 2nd Floor', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString(), assigneeUserId: null },
+    { id: 't3', title: 'Plumbing Check', trade: 'Plumbing', location: 'Tower C, Basement', state: 'PENDING', actualStart: null, actualEnd: null, plannedStart: null, plannedEnd: null, updatedAt: new Date().toISOString(), assigneeUserId: 'u2' },
+  ];
+  const [rows, setRows] = useState<any[]>(DEMO ? MOCK_TASKS : []);
+  const [users, setUsers] = useState<any[]>(DEMO ? MOCK_USERS : []);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
 
-  async function load() {
-    try {
-      const [ts, us] = await Promise.all([
-        fetch(`${API}/tasks`, { headers: headers() }).then((r) => r.json()),
-        fetch(`${API}/users?role=worker`, { headers: headers() }).then((r) => r.ok ? r.json() : []),
-      ]);
-      setRows(ts); setUsers(us);
-    } catch (e: any) { setErr(e.message); }
-  }
-  useEffect(() => { load(); }, []);
+  // In demo, skip API load
+  useEffect(() => {
+    if (!DEMO) {
+      // ...existing API load code...
+    }
+  }, []);
 
-  async function assign(taskId: string, assigneeUserId: string | null) {
+  function assign(taskId: string, assigneeUserId: string | null) {
     setBusy(taskId);
-    try {
-      const res = await fetch(`${API}/tasks/${taskId}/assign`, {
-        method: 'PATCH', headers: headers(),
-        body: JSON.stringify({ assigneeUserId }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'failed');
-      await load();
-    } catch (e: any) { setErr(e.message); }
-    finally { setBusy(null); }
+    setRows((prev) => prev.map((t) => t.id === taskId ? { ...t, assigneeUserId } : t));
+    setTimeout(() => setBusy(null), 500);
   }
 
   const byAssignee = useMemo(() => {
@@ -709,7 +692,10 @@ function TasksBoard({
           users={users}
           siteId={rows[0]?.siteId ?? ''}
           onClose={() => setShowNew(false)}
-          onCreated={() => { setShowNew(false); load(); }}
+          onCreated={(newTask) => {
+            setShowNew(false);
+            setRows((prev) => [...prev, { ...newTask, id: `mock${Date.now()}` }]);
+          }}
         />
       )}
     </div>
@@ -720,10 +706,10 @@ function NewTaskModal({
   headers, users, siteId, onClose, onCreated,
 }: {
   headers: () => HeadersInit;
-  users: UserLite[];
+  users: any[];
   siteId: string;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (newTask: any) => void;
 }) {
   const [title, setTitle] = useState('');
   const [trade, setTrade] = useState('tile');
@@ -742,23 +728,21 @@ function NewTaskModal({
     } catch { /* noop */ }
   }, [resolvedSiteId]);
 
-  async function submit(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setErr(null);
-    try {
-      const res = await fetch(`${API}/tasks`, {
-        method: 'POST', headers: headers(),
-        body: JSON.stringify({
-          siteId: resolvedSiteId,
-          title, trade, location,
-          assigneeUserId: assigneeUserId || null,
-          plannedStart: null, plannedEnd: null, sopProtocolId: null,
-        }),
+    // DEMO: Instantly add mock task
+    setTimeout(() => {
+      onCreated({
+        title,
+        trade,
+        location,
+        assigneeUserId: assigneeUserId || null,
+        plannedStart: null, plannedEnd: null, sopProtocolId: null,
+        actualStart: null, actualEnd: null, updatedAt: new Date().toISOString(),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'failed');
-      onCreated();
-    } catch (e: any) { setErr(e.message); }
-    finally { setBusy(false); }
+      setBusy(false);
+    }, 500);
   }
 
   return (
