@@ -629,9 +629,10 @@ function MyTasksView({
     (async () => {
       try {
         const r = await apiFetch(`/tasks`, { headers: headers() });
-        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? 'failed');
-        const all: Task[] = await r.json();
+        const data = await r.json().catch(() => null);
+        if (!r.ok) throw new Error((data && (data as any).error) ?? 'failed');
         // The dev/demo `/tasks` returns everything; filter client-side to "mine".
+        const all: Task[] = Array.isArray(data) ? data : [];
         const meId = (() => { try { return JSON.parse(localStorage.getItem('sf_user') ?? 'null')?.id ?? null; } catch { return null; } })();
         const mine = all.filter((t: any) => !meId || t.assigneeUserId === meId);
         setRows(mine);
@@ -772,10 +773,11 @@ function TasksBoard({
         apiFetch(`/users`, { headers: headers() }),
         apiFetch(`/sites`, { headers: headers() }),
       ]);
-      if (tasksRes.ok) setRows(await tasksRes.json());
-      if (usersRes.ok) setUsers(await usersRes.json());
+      if (tasksRes.ok) { const j = await tasksRes.json(); setRows(Array.isArray(j) ? j : []); }
+      if (usersRes.ok) { const j = await usersRes.json(); setUsers(Array.isArray(j) ? j : []); }
       if (sitesRes.ok) {
-        const sites: { id: string }[] = await sitesRes.json();
+        const j = await sitesRes.json();
+        const sites: { id: string }[] = Array.isArray(j) ? j : [];
         if (sites[0]) setSiteId(sites[0].id);
       }
     } catch (e: any) {
@@ -928,11 +930,12 @@ function NewTaskModal({
         apiFetch(`/sop`,   { headers: headers() }),
       ]);
       if (s.ok) {
-        const ss = await s.json();
+        const raw = await s.json();
+        const ss = Array.isArray(raw) ? raw : [];
         setSites(ss);
         if (!resolvedSiteId && ss[0]) setResolvedSiteId(ss[0].id);
       }
-      if (p.ok) setSops(await p.json());
+      if (p.ok) { const raw = await p.json(); setSops(Array.isArray(raw) ? raw : []); }
     })();
   }, [headers, resolvedSiteId]);
 
@@ -1080,8 +1083,9 @@ function TimesheetsToday({ headers }: { headers: () => HeadersInit }) {
     (async () => {
       try {
         const r = await apiFetch(`/timesheets/today`, { headers: headers() });
-        if (!r.ok) throw new Error((await r.json()).error ?? 'failed');
-        setRows(await r.json());
+        const data = await r.json().catch(() => null);
+        if (!r.ok) throw new Error((data && (data as any).error) ?? 'failed');
+        setRows(Array.isArray(data) ? data : []);
       } catch (e: any) { setErr(e.message); }
     })();
   }, []);
@@ -1768,7 +1772,8 @@ function SitesAdmin({ headers, canCreate }: { headers: () => HeadersInit; canCre
     setLoading(true);
     try {
       const r = await apiFetch(`/sites`, { headers: headers() });
-      setRows(r.ok ? await r.json() : []);
+      const j = r.ok ? await r.json().catch(() => []) : [];
+      setRows(Array.isArray(j) ? j : []);
     } finally { setLoading(false); }
   }, [headers]);
   useEffect(() => { load(); }, [load]);
@@ -2113,7 +2118,8 @@ function WhatsAppOutbox({ headers }: { headers: () => HeadersInit }) {
       setLoading(true);
       try {
         const r = await apiFetch(`/whatsapp/outbox`, { headers: headers() });
-        setRows(r.ok ? await r.json() : []);
+        const j = r.ok ? await r.json().catch(() => []) : [];
+        setRows(Array.isArray(j) ? j : []);
       } finally { setLoading(false); }
     })();
   }, [headers]);
