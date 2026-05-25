@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @siteflow/web build",
-  "installCommand": "corepack enable && corepack prepare pnpm@9.12.0 --activate",
-  "outputDirectory": "apps/web/.next",
+  "framework": null,
+  "installCommand": "corepack enable && corepack prepare pnpm@9.12.0 --activate && pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @siteflow/web build",
+  "outputDirectory": "apps/web/out",
   "env": {
     "NEXT_PUBLIC_DEMO": "true"
   },
