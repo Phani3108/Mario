@@ -1,14 +1,14 @@
-# Mickey — Proof, not promises.
+# Mario — Proof, not promises.
 
 > A flat takes a year to build. About four minutes to inspect. We changed the math.
 
-Mickey is the **proof layer for residential real estate.** Every tile, every coat, every fitting — photographed on site, geofenced to the square metre, approved by four people who put their name on it. The result is buildings clients trust on the day they hand over keys.
+Mario is the **proof layer for residential real estate.** Every tile, every coat, every fitting — photographed on site, geofenced to the square metre, approved by four people who put their name on it. The result is buildings clients trust on the day they hand over keys.
 
 Launch market: **Hyderabad.** Expandable to any developer in any city.
 
 ---
 
-## Why developers switch to Mickey
+## Why developers switch to Mario
 
 | | |
 |---|---|
@@ -35,7 +35,7 @@ Launch market: **Hyderabad.** Expandable to any developer in any city.
 
 ## 🌐 Live demo
 
-**[mickey-ashy.vercel.app](https://mickey-ashy.vercel.app)** runs the web app with the **DEMO MODE** flag on — there is no backend wired up, but the entire UI is functional. Five seeded Hyderabad projects, 34 tasks across every state, working +New Task, working approval chain, working logo upload (in-browser only). Look for the green `DEMO MODE` chip in the top bar.
+**[mario-ashy.vercel.app](https://mario-ashy.vercel.app)** runs the web app with the **DEMO MODE** flag on — there is no backend wired up, but the entire UI is functional. Five seeded Hyderabad projects, 34 tasks across every state, working +New Task, working approval chain, working logo upload (in-browser only). Look for the green `DEMO MODE` chip in the top bar.
 
 ### Deploying your own to Vercel
 
@@ -60,8 +60,8 @@ with `NEXT_PUBLIC_DEMO=true` baked into the build. To point the deployed web app
 
 ```sh
 # Requires: Node 22, pnpm 9, Docker Desktop
-git clone https://github.com/Phani3108/Mickey
-cd Mickey/siteflow
+git clone https://github.com/Phani3108/Mario
+cd Mario/siteflow
 cp .env.example .env
 
 pnpm bootstrap        # installs deps, brings up Postgres + MinIO, pushes schema, seeds demo data
@@ -154,7 +154,7 @@ siteflow/
 - **API:** Fastify 5, `@fastify/jwt`, `@fastify/cors`, `fastify-type-provider-zod`
 - **DB:** Postgres 16, Drizzle ORM, `drizzle-kit push` (no migration drift in dev)
 - **Object store:** MinIO (S3-compatible) for proofs, selfies, org logos, SOP reference media
-- **Frontend:** Next.js 15 App Router, Tailwind 3 with the `mickey.*` palette, Source Serif Pro for Ogilvy long-copy
+- **Frontend:** Next.js 15 App Router, Tailwind 3 with the `mario.*` palette, Source Serif Pro for Ogilvy long-copy
 - **Field:** Vite + React PWA, IndexedDB offline queue, geolocation + camera + watermark client-side
 - **Notifications:** MSG91 (OTP + WhatsApp) — real call when keys set, console fallback otherwise
 
@@ -162,7 +162,7 @@ siteflow/
 
 ## 🎨 Brand
 
-The Mickey mark is a builder's **"M"** — two plumb-strings for the verticals, a spirit level across the top with a centered bubble, plumb-bobs at the base. Slate + saffron — the colours of a confident Indian real-estate brand. The favicon and dashboard logo live in `apps/web/src/components/MickeyLogo.tsx` and `apps/web/public/brand/favicon.svg`.
+The Mario mark is a builder's **"M"** — two plumb-strings for the verticals, a spirit level across the top with a centered bubble, plumb-bobs at the base. Slate + saffron — the colours of a confident Indian real-estate brand. The favicon and dashboard logo live in `apps/web/src/components/MarioLogo.tsx` and `apps/web/public/brand/favicon.svg`.
 
 ---
 

@@ -2,7 +2,7 @@
  * Tiny IndexedDB-backed queue for proof uploads when the network is down.
  * One store: `proofs` keyed by autoincrement id. Value = {taskId, blob, meta}.
  */
-const DB_NAME = 'mickey-field';
+const DB_NAME = 'mario-field';
 const DB_VER = 1;
 const STORE = 'proofs';
 

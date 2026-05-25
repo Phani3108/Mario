@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        mickey: {
+        mario: {
           saffron: {
             50:  '#FFF8EC',
             100: '#FDEBC4',

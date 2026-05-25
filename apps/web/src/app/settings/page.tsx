@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MickeyMark } from '../../components/MickeyLogo';
+import { MarioMark } from '../../components/MarioLogo';
 import { apiFetch } from '../../lib/api';
 
 type Settings = {
@@ -86,8 +86,8 @@ export default function SettingsPage() {
       <header className="bg-slate-950 text-slate-100 border-b border-slate-800">
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center gap-3">
           <a href="/approvals" className="flex items-center gap-3">
-            <MickeyMark size={32} />
-            <div className="font-extrabold tracking-tight">Mickey · Settings</div>
+            <MarioMark size={32} />
+            <div className="font-extrabold tracking-tight">Mario · Settings</div>
           </a>
           <a href="/approvals" className="ml-auto text-xs text-amber-400 hover:text-amber-300 underline">← Back to dashboard</a>
         </div>
@@ -109,7 +109,7 @@ export default function SettingsPage() {
             <div className="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 grid place-items-center overflow-hidden">
               {logoUrl
                 ? <img src={logoUrl} alt="logo" className="w-full h-full object-contain" />
-                : <MickeyMark size={56} />}
+                : <MarioMark size={56} />}
             </div>
             <div className="flex-1">
               <button

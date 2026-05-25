@@ -1,6 +1,6 @@
-// Mickey field-app service worker — minimal offline shell.
+// Mario field-app service worker — minimal offline shell.
 // Network-first for navigation, cache-first for static assets.
-const CACHE = 'mickey-shell-v1';
+const CACHE = 'mario-shell-v1';
 const SHELL = ['/', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {

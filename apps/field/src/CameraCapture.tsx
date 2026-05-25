@@ -217,7 +217,7 @@ function drawWatermark(
   ctx.fillRect(0, h - fontSize * 4 - pad * 2, w, fontSize * 4 + pad * 2);
   ctx.fillStyle = '#F59E0B';
   ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
-  ctx.fillText(`Mickey · ${meta.title}`, pad, h - fontSize * 3 + pad);
+  ctx.fillText(`Mario · ${meta.title}`, pad, h - fontSize * 3 + pad);
   ctx.fillStyle = '#fff';
   ctx.font = `${fontSize}px ui-monospace, monospace`;
   ctx.fillText(`task #${meta.taskId.slice(0, 8)} · ${meta.location}`, pad, h - fontSize * 2 + pad);

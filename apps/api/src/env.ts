@@ -18,7 +18,7 @@ export const env = {
   devAuth: (process.env.DEV_AUTH ?? 'true') === 'true', // keep dev login while building
   msg91: {
     authKey: process.env.MSG91_AUTH_KEY ?? '',
-    senderId: process.env.MSG91_SENDER_ID ?? 'MICKEY',
+    senderId: process.env.MSG91_SENDER_ID ?? 'MARIO',
     otpTemplateId: process.env.MSG91_OTP_TEMPLATE_ID ?? '',
     waTemplateId: process.env.MSG91_WA_TEMPLATE_ID ?? '',
   },

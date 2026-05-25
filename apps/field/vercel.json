@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "cd ../.. && corepack enable && corepack prepare pnpm@9.12.0 --activate && pnpm install --frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm --filter @siteflow/field build",
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_DEMO": "true"
+  },
+  "build": {
+    "env": {
+      "VITE_DEMO": "true"
+    }
+  }
+}

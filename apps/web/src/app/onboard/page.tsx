@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MickeyMark } from '../../components/MickeyLogo';
+import { MarioMark } from '../../components/MarioLogo';
 import { apiFetch } from '../../lib/api';
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -158,9 +158,9 @@ export default function OnboardPage() {
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <MickeyMark size={36} />
+          <MarioMark size={36} />
           <div>
-            <div className="font-bold">Mickey · Setup</div>
+            <div className="font-bold">Mario · Setup</div>
             <div className="text-[11px] text-slate-400">Step {step} of 5</div>
           </div>
         </div>

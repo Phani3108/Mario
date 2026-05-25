@@ -1,4 +1,17 @@
+import { demoFetch } from './demo/demoFetch';
+
 export const API_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:4000';
+const FORCE_DEMO = (import.meta as any).env?.VITE_DEMO === 'true';
+
+/** Demo mode kicks in when explicitly forced, or when we're deployed but
+ * pointing at localhost (i.e. no real API). Same logic as apps/web. */
+export function isDemo(): boolean {
+  if (FORCE_DEMO) return true;
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') return false;
+  return API_URL.includes('localhost') || API_URL.includes('127.0.0.1');
+}
 
 export function getToken(): string | null {
   return localStorage.getItem('sf_token');
@@ -18,14 +31,16 @@ export function setUser(u: any) {
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const t = getToken();
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      'content-type': 'application/json',
-      ...(t ? { authorization: `Bearer ${t}` } : {}),
-      ...(init.headers ?? {}),
-    },
-  });
+  const headers = {
+    'content-type': 'application/json',
+    ...(t ? { authorization: `Bearer ${t}` } : {}),
+    ...(init.headers ?? {}),
+  };
+
+  const res = isDemo()
+    ? await demoFetch(path, { ...init, headers })
+    : await fetch(`${API_URL}${path}`, { ...init, headers });
+
   if (!res.ok) {
     let msg = res.statusText;
     try { msg = (await res.json()).error ?? msg; } catch { /* noop */ }
@@ -45,7 +60,17 @@ export function deviceId(): string {
 
 export function getGeo(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
-    if (!('geolocation' in navigator)) return reject(new Error('geolocation unavailable'));
+    if (!('geolocation' in navigator)) {
+      // In demo mode return a deterministic Hyderabad/Hitech City fix so the
+      // worker UI does something sensible without permissions.
+      if (isDemo()) {
+        return resolve({
+          coords: { latitude: 17.4474, longitude: 78.3762, accuracy: 10, altitude: null, altitudeAccuracy: null, heading: null, speed: null },
+          timestamp: Date.now(),
+        } as GeolocationPosition);
+      }
+      return reject(new Error('geolocation unavailable'));
+    }
     navigator.geolocation.getCurrentPosition(resolve, reject, {
       enableHighAccuracy: true, timeout: 10_000, maximumAge: 0,
     });

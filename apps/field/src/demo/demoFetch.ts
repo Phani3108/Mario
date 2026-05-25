@@ -114,6 +114,54 @@ export async function demoFetch(input: string, init: RequestInit = {}): Promise<
   if (path === '/tasks' && method === 'GET') {
     return ok(store.tasks.map(decorate));
   }
+  const startMatch = path.match(/^\/tasks\/([^/]+)\/start$/);
+  if (startMatch && method === 'POST') {
+    const t = store.tasks.find((x) => x.id === startMatch[1]);
+    if (!t) return notFound();
+    t.state = 'IN_PROGRESS';
+    t.actualStart = t.actualStart ?? new Date().toISOString();
+    t.updatedAt = new Date().toISOString();
+    return ok(decorate(t));
+  }
+  const acceptMatch = path.match(/^\/tasks\/([^/]+)\/accept$/);
+  if (acceptMatch && method === 'POST') {
+    const t = store.tasks.find((x) => x.id === acceptMatch[1]);
+    if (!t) return notFound();
+    t.state = 'ACCEPTED';
+    t.acceptedAt = new Date().toISOString();
+    t.updatedAt = new Date().toISOString();
+    return ok(decorate(t));
+  }
+
+  // ---------- PROOFS (field) ----------
+  if (path === '/proofs/presign' && method === 'POST') {
+    return ok({
+      uploadUrl: `data:image/jpeg;base64,demo-${newId('proof')}`,
+      s3Key: `demo/proofs/${newId('p')}.jpg`,
+    });
+  }
+  if (path === '/proofs/finalize' && method === 'POST') {
+    const t = store.tasks.find((x) => x.id === body?.taskId);
+    if (!t) return notFound();
+    t.state = 'PROOF_SUBMITTED';
+    t.updatedAt = new Date().toISOString();
+    return ok({
+      geofence: { inside: true, distanceM: 12, radiusM: 150 },
+      task: decorate(t),
+    });
+  }
+
+  // ---------- TIMESHEETS (field) ----------
+  if (path === '/timesheets/me/today' && method === 'GET') return ok([]);
+  if (path === '/timesheets/selfie/presign' && method === 'POST') {
+    return ok({
+      uploadUrl: `data:image/jpeg;base64,demo-${newId('selfie')}`,
+      s3Key: `demo/selfies/${newId('s')}.jpg`,
+    });
+  }
+  if (path === '/timesheets/punch' && method === 'POST') {
+    return ok({ geofence: { inside: true, distanceM: 8, radiusM: 150 } });
+  }
   if (path === '/tasks' && method === 'POST') {
     if (!body?.siteId || !store.sites.find((s) => s.id === body.siteId)) {
       return ok({ error: 'siteId does not belong to your organization' }, 400);

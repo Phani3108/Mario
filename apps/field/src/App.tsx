@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { api, deviceId, getGeo, getToken, getUser, setToken, setUser } from './lib';
+import { api, deviceId, getGeo, getToken, getUser, isDemo, setToken, setUser } from './lib';
 import { CameraCapture } from './CameraCapture';
 import { t, getLang, setLang, onLangChange } from './i18n';
 import { count as qCount, enqueue, list as qList, remove as qRemove } from './offlineQueue';
-import { MickeyMark } from './MickeyLogo';
+import { MarioMark } from './MarioLogo';
 
 type Task = {
   id: string; title: string; trade: string; location: string;
@@ -28,7 +28,7 @@ export function App() {
   const [, force] = useState(0);
   useEffect(() => onLangChange(() => force((n) => n + 1)), []);
   if (!token) return <Login onLogin={(tok, u) => { setToken(tok); setUser(u); location.reload(); }} />;
-  if (!localStorage.getItem('mickey_perm_done')) return <Permissions onDone={() => { localStorage.setItem('mickey_perm_done','1'); force((n)=>n+1); }} />;
+  if (!localStorage.getItem('mario_perm_done')) return <Permissions onDone={() => { localStorage.setItem('mario_perm_done','1'); force((n)=>n+1); }} />;
   return <Home />;
 }
 
@@ -83,9 +83,9 @@ function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
           <span className="absolute -top-px -right-px w-8 h-8 border-t-2 border-r-2 border-amber-400 rounded-tr-2xl" />
 
           <div className="flex items-center gap-2 mb-3">
-            <MickeyMark size={36} />
+            <MarioMark size={36} />
             <div className="leading-tight">
-              <div className="text-amber-400 text-[10px] font-bold tracking-[0.25em]">MICKEY</div>
+              <div className="text-amber-400 text-[10px] font-bold tracking-[0.25em]">MARIO</div>
               <div className="text-[10px] text-slate-400">FIELD · हाज़िरी</div>
             </div>
             <div className="ml-auto"><LangToggle /></div>
@@ -134,7 +134,7 @@ function Home() {
   const [cameraReq, setCameraReq] = useState<CamRequest | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [queueN, setQueueN] = useState(0);
-  const [org, setOrg] = useState<{ name: string; logoUrl: string | null }>({ name: 'Mickey', logoUrl: null });
+  const [org, setOrg] = useState<{ name: string; logoUrl: string | null }>({ name: 'Mario', logoUrl: null });
 
   async function load() {
     try {
@@ -149,7 +149,7 @@ function Home() {
   useEffect(() => {
     load();
     api<{ org: { name: string }; logoUrl: string | null }>('/orgs/me')
-      .then((o) => setOrg({ name: o.org?.name ?? 'Mickey', logoUrl: o.logoUrl ?? null }))
+      .then((o) => setOrg({ name: o.org?.name ?? 'Mario', logoUrl: o.logoUrl ?? null }))
       .catch(() => {});
   }, []);
 
@@ -271,12 +271,12 @@ function Home() {
         <button
           onClick={() => { setCameraReq(null); setFlash(null); setErr(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           className="flex items-center gap-3 group"
-          aria-label="Mickey home"
+          aria-label="Mario home"
         >
           {org.logoUrl ? (
             <img src={org.logoUrl} alt={org.name} className="w-10 h-10 rounded-full object-contain bg-white p-0.5 group-active:scale-95 transition" />
           ) : (
-            <MickeyMark size={40} className="group-active:scale-95 transition" />
+            <MarioMark size={40} className="group-active:scale-95 transition" />
           )}
           <div className="text-left">
             <div className="text-amber-400 text-[10px] font-bold tracking-[0.25em]">{org.name.toUpperCase()}</div>
@@ -285,6 +285,12 @@ function Home() {
           </div>
         </button>
         <div className="ml-auto flex items-center gap-2">
+          {isDemo() && (
+            <span title="No backend — UI runs on in-browser mock data."
+              className="hidden sm:inline-flex px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold text-[10px] tracking-wider">
+              DEMO
+            </span>
+          )}
           <LangToggle />
           <button onClick={logout} className="text-slate-400 text-xs underline">{t('signOut')}</button>
         </div>
@@ -502,9 +508,9 @@ function Permissions({ onDone }: { onDone: () => void }) {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
       <div className="px-5 pt-8 pb-4 flex items-center gap-3">
-        <MickeyMark size={44} />
+        <MarioMark size={44} />
         <div>
-          <div className="text-2xl font-bold text-amber-400">Mickey</div>
+          <div className="text-2xl font-bold text-amber-400">Mario</div>
           <div className="text-xs text-slate-400">Field worker app</div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MickeyMark } from '../../components/MickeyLogo';
+import { MarioMark } from '../../components/MarioLogo';
 import { apiFetch, isDemo } from '../../lib/api';
 
 type Task = {
@@ -65,7 +65,7 @@ export default function ApprovalsPage() {
   const [view, setView] = useState<View>('approvals');
   const [activeSite, setActiveSite] = useState<string>('');
   const [sitesList, setSitesList] = useState<Site[]>([]);
-  const [orgInfo, setOrgInfo] = useState<{ name: string; logoUrl: string | null }>({ name: 'Mickey', logoUrl: null });
+  const [orgInfo, setOrgInfo] = useState<{ name: string; logoUrl: string | null }>({ name: 'Mario', logoUrl: null });
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('sf_token') : null;
 
@@ -99,7 +99,7 @@ export default function ApprovalsPage() {
       if (!activeSite && sitesMapped.length > 0 && sitesMapped[0]) setActiveSite(sitesMapped[0].id);
       if (orgRes.ok) {
         const data: { org: { name: string }; logoUrl: string | null } = await orgRes.json();
-        setOrgInfo({ name: data.org?.name ?? 'Mickey', logoUrl: data.logoUrl ?? null });
+        setOrgInfo({ name: data.org?.name ?? 'Mario', logoUrl: data.logoUrl ?? null });
       }
     } catch (e: any) {
       setError(e?.message ?? 'failed to load dashboard');
@@ -172,11 +172,11 @@ export default function ApprovalsPage() {
           >
             <span className="block w-4 h-px bg-slate-200 relative before:content-[''] before:block before:absolute before:-top-1.5 before:left-0 before:w-4 before:h-px before:bg-slate-200 after:content-[''] after:block after:absolute after:top-1.5 after:left-0 after:w-4 after:h-px after:bg-slate-200" />
           </button>
-          <a href="/" className="flex items-center gap-2 group" aria-label="Mickey home">
+          <a href="/" className="flex items-center gap-2 group" aria-label="Mario home">
             {orgInfo.logoUrl ? (
               <img src={orgInfo.logoUrl} alt={orgInfo.name} className="w-9 h-9 rounded-md object-contain bg-white p-0.5 group-hover:scale-105 transition" />
             ) : (
-              <MickeyMark size={36} className="group-hover:scale-105 transition" />
+              <MarioMark size={36} className="group-hover:scale-105 transition" />
             )}
             <div className="leading-tight">
               <div className="font-extrabold tracking-tight">{orgInfo.name}</div>
@@ -1871,7 +1871,7 @@ function NewEmployeeModal({ sites, headers, onClose, onSaved }: {
             <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm">
               <div><span className="text-slate-600">Name:</span> <b>{done.name}</b></div>
               <div><span className="text-slate-600">Login:</span> <code className="bg-white px-1 rounded">{done.phone ?? done.email}</code></div>
-              <div className="text-xs text-emerald-700 mt-2">A WhatsApp welcome has been queued in the Outbox. The employee can install the Mickey app and sign in with the login above.</div>
+              <div className="text-xs text-emerald-700 mt-2">A WhatsApp welcome has been queued in the Outbox. The employee can install the Mario app and sign in with the login above.</div>
             </div>
             <div className="flex justify-end">
               <button onClick={onSaved} className="px-3 py-2 rounded-md bg-amber-500 text-slate-900 font-bold text-sm">Done</button>

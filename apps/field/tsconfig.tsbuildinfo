@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/cameracapture.tsx","./src/mickeylogo.tsx","./src/i18n.ts","./src/lib.ts","./src/main.tsx","./src/offlinequeue.ts","./vite.config.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/cameracapture.tsx","./src/mariologo.tsx","./src/i18n.ts","./src/lib.ts","./src/main.tsx","./src/offlinequeue.ts","./src/demo/demofetch.ts","./src/demo/demoseed.ts","./vite.config.ts"],"version":"5.9.3"}

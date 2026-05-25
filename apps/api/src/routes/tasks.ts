@@ -136,7 +136,7 @@ export async function taskRoutes(app: FastifyInstance) {
       await notify({
         orgId: u.orgId, userId: body.assigneeUserId, kind: 'TASK_ASSIGNED',
         title: 'New task assigned',
-        body: `${body.title} · ${body.location}. Open the Mickey app and tap ACCEPT to start the timer.`,
+        body: `${body.title} · ${body.location}. Open the Mario app and tap ACCEPT to start the timer.`,
         taskId: row.id, whatsapp: true,
       });
     }

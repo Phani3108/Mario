@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MickeyMark } from '../components/MickeyLogo';
+import { MarioMark } from '../components/MarioLogo';
 import { apiFetch } from '../lib/api';
 // Show dev preset login on localhost or when explicitly enabled. Production builds
 // served from a real host with NEXT_PUBLIC_DEV_AUTH unset will hide it.
@@ -95,10 +95,10 @@ export default function LoginPage() {
       {/* Top nav */}
       <header className="relative z-10 border-b border-white/5 backdrop-blur bg-slate-950/40">
         <div className="max-w-6xl mx-auto px-5 py-4 flex items-center gap-3">
-          <a href="/" className="flex items-center gap-3 group" aria-label="Mickey home">
-            <MickeyMark size={40} className="group-hover:scale-105 transition" />
+          <a href="/" className="flex items-center gap-3 group" aria-label="Mario home">
+            <MarioMark size={40} className="group-hover:scale-105 transition" />
             <div className="leading-tight">
-              <div className="font-bold tracking-tight">Mickey</div>
+              <div className="font-bold tracking-tight">Mario</div>
               <div className="text-[11px] text-slate-400">Site truth, on schedule.</div>
             </div>
           </a>
@@ -126,7 +126,7 @@ export default function LoginPage() {
             We changed the math.
           </h1>
           <p className="mt-5 text-slate-300 text-base md:text-lg max-w-md leading-relaxed">
-            Mickey is the proof layer for residential real estate. Every tile, every coat,
+            Mario is the proof layer for residential real estate. Every tile, every coat,
             every fitting — photographed on site, geofenced to the square metre, approved
             by four people who put their name on it. <span className="text-slate-100 font-semibold">Add a project in a minute. Add a tower in five.</span>
           </p>
@@ -265,7 +265,7 @@ export default function LoginPage() {
 
       {/* Three Ogilvy "reasons to believe" — long-copy cards under the fold */}
       <section id="how" className="relative z-10 max-w-6xl mx-auto px-5 py-14 border-t border-white/5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-amber-300/80 mb-3 font-bold">Why developers switch to Mickey</div>
+        <div className="text-[10px] uppercase tracking-[0.3em] text-amber-300/80 mb-3 font-bold">Why developers switch to Mario</div>
         <div className="grid md:grid-cols-3 gap-5">
           {[
             {

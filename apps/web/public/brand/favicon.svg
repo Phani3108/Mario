@@ -4,32 +4,25 @@
       <stop offset="0%" stop-color="#0F172A"/>
       <stop offset="100%" stop-color="#1E293B"/>
     </linearGradient>
-    <linearGradient id="saf" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#F0A731"/>
-      <stop offset="100%" stop-color="#E97300"/>
+    <linearGradient id="tower" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#EA580C"/>
     </linearGradient>
   </defs>
   <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bg)"/>
-  <!-- Spirit-level cap -->
-  <rect x="11" y="10" width="42" height="8" rx="2" fill="url(#saf)" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
-  <rect x="26" y="11.6" width="12" height="4.8" rx="2.4" fill="#0F172A" opacity="0.85"/>
-  <circle cx="34" cy="14" r="1.6" fill="#F0A731"/>
-  <circle cx="34" cy="14" r="0.6" fill="rgba(255,255,255,0.85)"/>
-  <rect x="11" y="11.5" width="1.6" height="5" rx="0.3" fill="rgba(0,0,0,0.25)"/>
-  <rect x="51.4" y="11.5" width="1.6" height="5" rx="0.3" fill="rgba(0,0,0,0.25)"/>
-  <!-- Plumb-lines forming the M -->
-  <g stroke="rgba(248,245,238,0.92)" stroke-width="1.4" stroke-linecap="round">
-    <line x1="16" y1="18" x2="16" y2="46"/>
-    <line x1="48" y1="18" x2="48" y2="46"/>
-    <line x1="22" y1="18" x2="32" y2="38"/>
-    <line x1="42" y1="18" x2="32" y2="38"/>
+  <g stroke="rgba(148,163,184,0.18)" stroke-width="0.5">
+    <path d="M2 18 H62 M2 32 H62 M2 46 H62 M18 2 V62 M32 2 V62 M46 2 V62"/>
   </g>
-  <!-- Plumb-bobs -->
-  <g fill="url(#saf)" stroke="rgba(0,0,0,0.35)" stroke-width="0.5">
-    <path d="M16 46 L13.4 50 L16 54 L18.6 50 Z"/>
-    <path d="M48 46 L45.4 50 L48 54 L50.6 50 Z"/>
-    <path d="M32 38 L29.4 42 L32 46 L34.6 42 Z"/>
+  <!-- Twin-tower M -->
+  <path
+    d="M12 50 V22 L20 16 L28 22 L32 26 L36 22 L44 16 L52 22 V50 H44 V32 H36 V50 H28 V32 H20 V50 Z"
+    fill="url(#tower)" stroke="#FCD34D" stroke-width="1" stroke-linejoin="round"
+  />
+  <!-- Geotag pin -->
+  <g transform="translate(32 14)">
+    <path d="M0 -6 a4 4 0 1 1 0 -0.01 Z M0 -2 V2" fill="#FCD34D" stroke="#FCD34D" stroke-width="1"/>
+    <circle cx="0" cy="-6" r="1.8" fill="#0F172A"/>
   </g>
-  <!-- Hi-vis baseline -->
-  <rect x="10" y="56" width="44" height="2.4" rx="1.2" fill="#F0A731" opacity="0.85"/>
+  <!-- Hi-vis base -->
+  <rect x="10" y="50" width="44" height="3" rx="1" fill="#F59E0B"/>
 </svg>

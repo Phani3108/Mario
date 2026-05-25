@@ -1,5 +1,5 @@
 /**
- * Mickey demo seed — Hyderabad market.
+ * Mario demo seed — Hyderabad market.
  *
  * Creates one org ("Sunrise Builders") with five real Hyderabad projects, each
  * geofenced to its actual neighbourhood, with a 1-supervisor + 3-worker crew,

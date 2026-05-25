@@ -67,8 +67,8 @@ export async function userRoutes(app: FastifyInstance) {
       orgId: u.orgId,
       userId: row.id,
       kind: 'WELCOME',
-      title: 'Welcome to Mickey',
-      body: `Hi ${row.name}, your login is ${loginId}. Install the Mickey app and sign in to see your tasks. Joining: ${row.joiningDate ? new Date(row.joiningDate).toDateString() : 'TBD'}.`,
+      title: 'Welcome to Mario',
+      body: `Hi ${row.name}, your login is ${loginId}. Install the Mario app and sign in to see your tasks. Joining: ${row.joiningDate ? new Date(row.joiningDate).toDateString() : 'TBD'}.`,
       whatsapp: true,
     });
 
