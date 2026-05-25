@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api, deviceId, getGeo, getToken, getUser, isDemo, setToken, setUser } from './lib';
 import { CameraCapture } from './CameraCapture';
 import { t, getLang, setLang, onLangChange } from './i18n';
@@ -22,6 +22,8 @@ type Punch = {
   punchedAt: string;
   insideGeofence: boolean;
 };
+
+type Tab = 'tasks' | 'time' | 'me';
 
 export function App() {
   const [token] = useState<string | null>(getToken());
@@ -58,9 +60,6 @@ function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
     e.preventDefault();
     setBusy(true); setErr(null);
     try {
-      // Route through api() so demo mode hits demoFetch's /auth/login and
-      // returns the real seeded user (correct role + siteId), not a fake
-      // hard-coded 'manager'.
       const data = await api<{ token: string; user: any }>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ phoneOrEmail: devId, devCode: '000000' }),
@@ -96,7 +95,7 @@ function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
             <div className="ml-auto"><LangToggle /></div>
           </div>
           <div className="text-2xl font-extrabold mb-1 text-slate-100">Sign in (dev bypass)</div>
-          <div className="text-xs text-slate-400 mb-5">Dev login only. Phone/OTP is disabled.</div>
+          <div className="text-xs text-slate-400 mb-5">{isDemo() ? 'Demo: pick a role and tap Sign in.' : 'Dev login only. Phone/OTP is disabled.'}</div>
 
           <label className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Dev user</label>
           <select
@@ -115,9 +114,11 @@ function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
             ))}
           </select>
 
+          {err && <div className="mt-3 text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{err}</div>}
+
           <button disabled={busy}
             className="mt-5 w-full btn-amber py-3 rounded-xl shadow-lg shadow-amber-500/20 disabled:opacity-60">
-            {busy ? '…' : 'Sign in'}
+            {busy ? '…' : t('signIn')}
           </button>
 
           <div className="mt-5 h-1.5 rounded-full overflow-hidden hi-vis-stripes opacity-60" />
@@ -133,6 +134,7 @@ type CamRequest =
 
 function Home() {
   const user = getUser()!;
+  const [tab, setTab] = useState<Tab>('tasks');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [punches, setPunches] = useState<Punch[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -148,10 +150,12 @@ function Home() {
         api<Task[]>('/tasks'),
         api<Punch[]>('/timesheets/me/today'),
       ]);
-      setTasks(ts); setPunches(ps);
+      setTasks(Array.isArray(ts) ? ts : []);
+      setPunches(Array.isArray(ps) ? ps : []);
     } catch (e: any) { setErr(e.message); }
     setQueueN(await qCount());
   }
+
   useEffect(() => {
     load();
     api<{ org: { name: string }; logoUrl: string | null }>('/orgs/me')
@@ -208,12 +212,15 @@ function Home() {
         deviceId: deviceId(),
       }),
     });
-    const up = await fetch(presign.uploadUrl, {
-      method: 'PUT',
-      headers: { 'content-type': 'image/jpeg' },
-      body: blob,
-    });
-    if (!up.ok) throw new Error(`upload failed (${up.status})`);
+    if (!presign.uploadUrl.startsWith('data:')) {
+      // Real S3 PUT (not the demo data: URL).
+      const up = await fetch(presign.uploadUrl, {
+        method: 'PUT',
+        headers: { 'content-type': 'image/jpeg' },
+        body: blob,
+      });
+      if (!up.ok) throw new Error(`upload failed (${up.status})`);
+    }
     return api<{ geofence: { inside: boolean; distanceM: number; radiusM: number } }>(
       '/proofs/finalize', {
       method: 'POST',
@@ -233,6 +240,17 @@ function Home() {
     setBusy(busyKey); setErr(null);
     try {
       if (req.kind === 'proof') {
+        // Stash the watermarked image bytes so the supervisor approval card
+        // can show the actual photo (the demo S3 PUT is a no-op, so without
+        // this the supervisor would only see the placeholder).
+        try {
+          const reader = new FileReader();
+          await new Promise<void>((res) => { reader.onload = () => res(); reader.readAsDataURL(blob); });
+          if (typeof reader.result === 'string') {
+            const key = `mario_proof_${req.task.id}`;
+            try { localStorage.setItem(key, reader.result); } catch { /* over-quota: skip */ }
+          }
+        } catch { /* noop */ }
         try {
           const fin = await uploadProof(req.task.id, blob, meta);
           setFlash(`${t('punched')} · ${fin.geofence.inside ? t('inside') : t('outside')} ${t('geofence')} (${fin.geofence.distanceM}m / ${fin.geofence.radiusM}m)`);
@@ -248,10 +266,14 @@ function Home() {
             method: 'POST',
             body: JSON.stringify({ mimeType: 'image/jpeg' }),
           });
-          const up = await fetch(sp.uploadUrl, {
-            method: 'PUT', headers: { 'content-type': 'image/jpeg' }, body: blob,
-          });
-          if (up.ok) selfieKey = sp.s3Key;
+          if (!sp.uploadUrl.startsWith('data:')) {
+            const up = await fetch(sp.uploadUrl, {
+              method: 'PUT', headers: { 'content-type': 'image/jpeg' }, body: blob,
+            });
+            if (up.ok) selfieKey = sp.s3Key;
+          } else {
+            selfieKey = sp.s3Key;
+          }
         } catch { /* selfie best-effort */ }
         const punchRes = await api<{ geofence: { inside: boolean; distanceM: number; radiusM: number } }>(
           '/timesheets/punch', {
@@ -261,6 +283,16 @@ function Home() {
             selfieS3Key: selfieKey, capturedAt: meta.capturedAt,
           }),
         });
+        // Optimistically add to local punches list so the timesheet view
+        // reflects the punch immediately even when the API doesn't echo it.
+        setPunches((cur) => [
+          ...cur.filter((p) => p.kind !== req.punchKind),
+          {
+            id: `local-${Date.now()}`, kind: req.punchKind,
+            punchedAt: meta.capturedAt,
+            insideGeofence: punchRes.geofence.inside,
+          },
+        ]);
         setFlash(`${t('punched')} ${req.punchKind} · ${punchRes.geofence.inside ? t('inside') : t('outside')} ${t('geofence')} (${punchRes.geofence.distanceM}m)`);
       }
       await load();
@@ -270,6 +302,15 @@ function Home() {
   function logout() {
     setToken(null); setUser(null); location.reload();
   }
+
+  // Derive next pending punch + shift duration for the home header / time tab.
+  const punchOrder: PunchKind[] = ['ENTRY', 'LUNCH_OUT', 'LUNCH_IN', 'EXIT'];
+  const punchByKind = useMemo(() => {
+    const m: Partial<Record<PunchKind, Punch>> = {};
+    for (const p of punches) m[p.kind] = p;
+    return m;
+  }, [punches]);
+  const nextPunch = punchOrder.find((k) => !punchByKind[k]) ?? null;
 
   return (
     <div className="min-h-full pb-24">
@@ -298,23 +339,8 @@ function Home() {
             </span>
           )}
           <LangToggle />
-          <button onClick={logout} className="text-slate-400 text-xs underline">{t('signOut')}</button>
         </div>
       </header>
-
-      <div className="relative mx-4 mt-3 rounded-xl overflow-hidden h-24 site-photo">
-        <div className="absolute inset-0 p-3 flex flex-col justify-end">
-          <div className="text-[10px] uppercase tracking-wider text-amber-300 font-bold">{t('todayBanner')} · Prestige Tower B</div>
-          <div className="text-white font-bold text-sm drop-shadow">12.97° N · 77.75° E · geofence 150 m</div>
-        </div>
-        <div className="absolute top-2 right-2 flex items-center gap-1.5 text-[10px] font-bold text-emerald-300">
-          <span className="relative flex w-2 h-2">
-            <span className="absolute inset-0 rounded-full bg-emerald-400 sf-pulse-ring" />
-            <span className="relative inline-flex rounded-full w-2 h-2 bg-emerald-400" />
-          </span>
-          LIVE
-        </div>
-      </div>
 
       {queueN > 0 && (
         <div className="mx-4 mt-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/40 text-amber-300 text-xs">
@@ -328,75 +354,24 @@ function Home() {
         <div className="mx-4 mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/40 text-red-300 text-sm sf-fade-up">{err}</div>
       )}
 
-      <PunchPanel
-        punches={punches}
-        busy={busy}
-        onPunch={(k) => setCameraReq({ kind: 'punch', punchKind: k })}
-      />
-
-      <div className="px-4 pt-4 pb-2 flex items-center gap-2">
-        <div className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">{t('yourTasks')}</div>
-        <span className="text-[10px] font-bold bg-amber-500 text-slate-900 px-2 py-0.5 rounded">{tasks.length}</span>
-      </div>
-      <div className="px-4 space-y-3">
-        {tasks.length === 0 && (
-          <div className="text-center text-slate-500 text-sm py-12">
-            <div className="mx-auto w-20 h-20 rounded-2xl bg-slate-800 grid place-items-center text-3xl mb-3">∅</div>
-            {t('noTasks')}
-          </div>
-        )}
-        {tasks.map((task, i) => (
-          <div
-            key={task.id}
-            className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden sf-fade-up shadow-lg shadow-black/20"
-            style={{ animationDelay: `${i * 0.06}s` }}
-          >
-            <div className={`h-16 relative ${tradePhoto(task.trade)}`}>
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent" />
-              <span className="absolute top-2 left-2 text-[10px] font-bold bg-black/60 text-amber-300 px-2 py-0.5 rounded">
-                {task.trade.toUpperCase()}
-              </span>
-              <span className="absolute top-2 right-2 text-[10px] font-mono bg-black/60 text-amber-300 px-2 py-0.5 rounded">
-                {task.state}
-              </span>
-            </div>
-            <div className="p-3">
-              <div className="font-bold text-slate-100">{task.title}</div>
-              <div className="text-xs text-slate-400">{task.location}</div>
-              <div className="mt-1.5 text-[11px] font-mono text-slate-500">
-                planned {fmt(task.plannedStart)} → {fmt(task.plannedEnd)}
-                {task.actualStart && <> · actual {fmt(task.actualStart)} → {fmt(task.actualEnd)}</>}
-              </div>
-              <div className="mt-3 flex gap-2">
-                {task.state === 'ASSIGNED' && (
-                  <button
-                    disabled={busy === task.id}
-                    onClick={() => accept(task)}
-                    className="btn-amber px-4 py-2.5 rounded-lg text-sm disabled:opacity-50 flex-1"
-                  >✓ Accept task</button>
-                )}
-                {(task.state === 'ACCEPTED' || task.state === 'REWORK') && (
-                  <button
-                    disabled={busy === task.id}
-                    onClick={() => start(task)}
-                    className="btn-amber px-4 py-2.5 rounded-lg text-sm disabled:opacity-50 flex-1"
-                  >▶ {t('start')}{task.acceptedAt && <> · <ElapsedSince at={task.acceptedAt} /></>}</button>
-                )}
-                {task.state === 'IN_PROGRESS' && (
-                  <button
-                    disabled={busy === task.id}
-                    onClick={() => setCameraReq({ kind: 'proof', task })}
-                    className="btn-amber px-4 py-2.5 rounded-lg text-sm disabled:opacity-50 flex-1"
-                  >{t('submitProof')}</button>
-                )}
-                {(task.state !== 'ASSIGNED' && task.state !== 'ACCEPTED' && task.state !== 'IN_PROGRESS' && task.state !== 'REWORK') && (
-                  <div className="text-xs text-slate-400 py-2">{t('waitingOn')} <span className="text-amber-400 font-semibold">{nextActor(task.state)}</span></div>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {tab === 'tasks' && (
+        <TasksTab
+          tasks={tasks} busy={busy}
+          nextPunch={nextPunch} entryPunch={punchByKind.ENTRY ?? null}
+          onPunch={(k) => setCameraReq({ kind: 'punch', punchKind: k })}
+          onAccept={accept} onStart={start}
+          onSubmitProof={(task) => setCameraReq({ kind: 'proof', task })}
+        />
+      )}
+      {tab === 'time' && (
+        <TimeTab
+          punches={punches} busy={busy} nextPunch={nextPunch} queueN={queueN}
+          onPunch={(k) => setCameraReq({ kind: 'punch', punchKind: k })}
+        />
+      )}
+      {tab === 'me' && (
+        <MeTab user={user} org={org} onSignOut={logout} />
+      )}
 
       {cameraReq && (
         <CameraCapture
@@ -411,54 +386,421 @@ function Home() {
           onCapture={handleCapture}
         />
       )}
+
+      <BottomNav tab={tab} setTab={setTab} />
     </div>
   );
 }
 
-function PunchPanel({
-  punches, busy, onPunch,
-}: { punches: Punch[]; busy: string | null; onPunch: (k: PunchKind) => void }) {
-  const done = new Set(punches.map((p) => p.kind));
-  const order: PunchKind[] = ['ENTRY', 'LUNCH_OUT', 'LUNCH_IN', 'EXIT'];
-  const next = order.find((k) => !done.has(k));
+// ─────────────────────────────────────────────────────────────────────────────
+// TASKS TAB
+// Mockup: ON SITE banner + SHIFT timer block + tasks with START/NOW/TARGET.
+
+function TasksTab({
+  tasks, busy, nextPunch, entryPunch, onPunch, onAccept, onStart, onSubmitProof,
+}: {
+  tasks: Task[]; busy: string | null; nextPunch: PunchKind | null; entryPunch: Punch | null;
+  onPunch: (k: PunchKind) => void;
+  onAccept: (t: Task) => void; onStart: (t: Task) => void; onSubmitProof: (t: Task) => void;
+}) {
+  const pendingCount = tasks.filter((t) => t.state !== 'CLOSED' && t.state !== 'CLIENT_ACKNOWLEDGED').length;
+  const siteLabel = 'Prestige Tower B'; // TODO: derive from user.siteId once /sites by id is reachable client-side.
 
   return (
-    <div className="px-4 pt-4">
-      <div className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-2">{t('punch')}</div>
-      <div className="grid grid-cols-4 gap-2">
-        {order.map((k) => {
-          const did = done.has(k);
-          const isNext = next === k;
-          const punch = punches.find((p) => p.kind === k);
-          return (
+    <>
+      {/* ON SITE banner — big, mockup-style */}
+      <section className="mx-4 mt-3 rounded-2xl overflow-hidden bg-slate-900 border border-slate-700 shadow-lg shadow-black/30">
+        <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-amber-400 font-bold">{t('onSite')}</span>
+          <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-300">
+            <span className="relative flex w-2 h-2">
+              <span className="absolute inset-0 rounded-full bg-emerald-400 sf-pulse-ring" />
+              <span className="relative inline-flex rounded-full w-2 h-2 bg-emerald-400" />
+            </span>
+            LIVE
+          </span>
+        </div>
+        <div className="px-4 pb-3">
+          <div className="text-2xl font-extrabold leading-tight">{siteLabel}</div>
+          <div className="text-[11px] text-slate-400 mt-0.5">12.97° N · 77.75° E · geofence 150 m</div>
+        </div>
+        {/* SHIFT card — clock + PUNCH-next CTA */}
+        <div className="grid grid-cols-[1fr_auto] gap-3 px-4 pb-4">
+          <div className="rounded-xl bg-slate-950/60 border border-slate-700 p-3">
+            <div className="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-bold">{t('shift')}</div>
+            <ShiftTimer startedAt={entryPunch?.punchedAt ?? null} />
+            <div className="text-[10px] text-slate-500 mt-0.5">{t('todayBanner')}</div>
+          </div>
+          {nextPunch && (
             <button
-              key={k}
-              disabled={!isNext || busy === `punch:${k}`}
-              onClick={() => onPunch(k)}
-              className={`relative rounded-xl p-2 text-center text-[10px] font-bold border transition
-                ${did
-                  ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300'
-                  : isNext
-                    ? 'bg-amber-500 border-amber-400 text-slate-900 shadow-md shadow-amber-500/30'
-                    : 'bg-slate-800/60 border-slate-700 text-slate-500'}`}
+              disabled={busy === `punch:${nextPunch}`}
+              onClick={() => onPunch(nextPunch)}
+              className="rounded-xl btn-amber px-4 py-3 text-sm font-extrabold leading-tight shadow-md shadow-amber-500/30 disabled:opacity-50 grid place-items-center text-center"
             >
-              <div className="text-[9px] tracking-widest opacity-80">{k.replace('_', ' ')}</div>
-              <div className="text-sm mt-0.5">{t(`punch_${k}` as any)}</div>
-              {punch && (
-                <div className="text-[9px] mt-0.5 font-mono opacity-80">
-                  {fmt(punch.punchedAt)}{!punch.insideGeofence && <span className="text-red-300"> ⚠</span>}
-                </div>
-              )}
+              <div className="text-[10px] tracking-widest opacity-80">{nextPunch.replace('_', ' ')}</div>
+              <div className="mt-0.5 text-base">
+                {nextPunch === 'ENTRY' ? t('punchEntry') :
+                 nextPunch === 'LUNCH_OUT' ? t('punchLunch') :
+                 nextPunch === 'LUNCH_IN' ? t('punchLunchIn') :
+                 t('punchExit')}
+              </div>
             </button>
-          );
-        })}
+          )}
+        </div>
+      </section>
+
+      <div className="px-4 pt-4 pb-2 flex items-center gap-2">
+        <div className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">{t('yourTasks')} · {tasks.length}</div>
+        {pendingCount > 0 && (
+          <span className="ml-auto text-[10px] font-bold bg-amber-500 text-slate-900 px-2 py-0.5 rounded">
+            {pendingCount} {t('pending')}
+          </span>
+        )}
+      </div>
+
+      <div className="px-4 space-y-3">
+        {tasks.length === 0 && (
+          <div className="text-center text-slate-500 text-sm py-12">
+            <div className="mx-auto w-20 h-20 rounded-2xl bg-slate-800 grid place-items-center text-3xl mb-3">∅</div>
+            {t('noTasks')}
+          </div>
+        )}
+        {tasks.map((task, i) => (
+          <TaskCard
+            key={task.id}
+            task={task} busy={busy}
+            onAccept={onAccept} onStart={onStart} onSubmitProof={onSubmitProof}
+            index={i}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function TaskCard({
+  task, busy, onAccept, onStart, onSubmitProof, index,
+}: {
+  task: Task; busy: string | null; index: number;
+  onAccept: (t: Task) => void; onStart: (t: Task) => void; onSubmitProof: (t: Task) => void;
+}) {
+  const statePill =
+    task.state === 'IN_PROGRESS' ? { cls: 'bg-amber-500 text-slate-900', label: '● ' + t('inProgress') } :
+    task.state === 'ASSIGNED'    ? { cls: 'bg-slate-700 text-slate-200', label: t('assigned') } :
+    task.state === 'ACCEPTED'    ? { cls: 'bg-blue-500/20 text-blue-200 border border-blue-500/40', label: 'ACCEPTED' } :
+    task.state === 'REWORK'      ? { cls: 'bg-red-500/20 text-red-200 border border-red-500/40', label: t('rework') } :
+    (task.state === 'CLOSED' || task.state === 'CLIENT_ACKNOWLEDGED')
+                                 ? { cls: 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40', label: '✓ ' + t('done') } :
+                                   { cls: 'bg-slate-700/50 text-slate-400', label: task.state };
+
+  const showStartNowTarget = task.state === 'IN_PROGRESS';
+
+  return (
+    <div
+      className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden sf-fade-up shadow-lg shadow-black/20"
+      style={{ animationDelay: `${Math.min(index, 6) * 0.05}s` }}
+    >
+      <div className="p-3">
+        <div className="flex items-start gap-2">
+          <div className={`w-12 h-12 rounded-lg shrink-0 ${tradePhoto(task.trade)}`} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${statePill.cls}`}>
+                {statePill.label}
+              </span>
+              {(task.reworkCount ?? 0) >= 2 && (
+                <span className="text-[9px] font-bold bg-red-600 text-white px-1.5 py-0.5 rounded">×{task.reworkCount}</span>
+              )}
+              {task.state === 'IN_PROGRESS' && task.actualStart && (
+                <span className="ml-auto text-[10px] text-amber-300 font-mono">
+                  <ElapsedSince at={task.actualStart} />
+                </span>
+              )}
+            </div>
+            <div className="font-bold text-slate-100 mt-1 leading-tight">{task.title}</div>
+            <div className="text-xs text-slate-400">{task.trade} · {task.location}</div>
+          </div>
+        </div>
+
+        {showStartNowTarget && (
+          <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-slate-950/60 border border-slate-700 p-2">
+            {[
+              { l: t('startLabel'),  v: fmt(task.actualStart) },
+              { l: t('nowLabel'),    v: nowHHMM() },
+              { l: t('targetLabel'), v: fmt(task.plannedEnd) },
+            ].map((c) => (
+              <div key={c.l} className="text-center">
+                <div className="text-[9px] uppercase tracking-widest text-slate-500 font-bold">{c.l}</div>
+                <div className="text-base font-mono font-bold text-slate-100">{c.v}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!showStartNowTarget && (
+          <div className="mt-2 text-[11px] font-mono text-slate-500">
+            planned {fmt(task.plannedStart)} → {fmt(task.plannedEnd)}
+            {task.actualStart && <> · actual {fmt(task.actualStart)} → {fmt(task.actualEnd)}</>}
+          </div>
+        )}
+
+        <div className="mt-3 flex gap-2">
+          {task.state === 'ASSIGNED' && (
+            <button
+              disabled={busy === task.id}
+              onClick={() => onAccept(task)}
+              className="btn-amber px-4 py-2.5 rounded-lg text-sm disabled:opacity-50 flex-1"
+            >{t('acceptTask')}</button>
+          )}
+          {(task.state === 'ACCEPTED' || task.state === 'REWORK') && (
+            <button
+              disabled={busy === task.id}
+              onClick={() => onStart(task)}
+              className="btn-amber px-4 py-2.5 rounded-lg text-sm disabled:opacity-50 flex-1"
+            >{t('start')}{task.acceptedAt && task.state === 'ACCEPTED' && <> · <ElapsedSince at={task.acceptedAt} /></>}</button>
+          )}
+          {task.state === 'IN_PROGRESS' && (
+            <button
+              disabled={busy === task.id}
+              onClick={() => onSubmitProof(task)}
+              className="btn-amber px-4 py-3 rounded-lg text-sm disabled:opacity-50 flex-1 font-extrabold"
+            >{t('submitProof')}</button>
+          )}
+          {(task.state !== 'ASSIGNED' && task.state !== 'ACCEPTED' && task.state !== 'IN_PROGRESS' && task.state !== 'REWORK') && (
+            <div className="text-xs text-slate-400 py-2">{t('waitingOn')} <span className="text-amber-400 font-semibold">{nextActor(task.state)}</span></div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TIME TAB — full timesheet with stamps, status block, big CTA
+
+function TimeTab({
+  punches, busy, nextPunch, queueN, onPunch,
+}: {
+  punches: Punch[]; busy: string | null; nextPunch: PunchKind | null; queueN: number;
+  onPunch: (k: PunchKind) => void;
+}) {
+  const user = getUser()!;
+  const today = new Date();
+  const todayLabel = today.toLocaleDateString(undefined, { day: '2-digit', month: 'short' }).toUpperCase();
+  const byKind: Partial<Record<PunchKind, Punch>> = Object.fromEntries(punches.map((p) => [p.kind, p]));
+
+  // Worked = (now or EXIT) - ENTRY - (LUNCH_IN - LUNCH_OUT if both present).
+  const workedMs = useMemo(() => {
+    const entry = byKind.ENTRY ? new Date(byKind.ENTRY.punchedAt).getTime() : null;
+    if (!entry) return 0;
+    const end = byKind.EXIT ? new Date(byKind.EXIT.punchedAt).getTime() : Date.now();
+    let ms = end - entry;
+    if (byKind.LUNCH_OUT && byKind.LUNCH_IN) {
+      ms -= new Date(byKind.LUNCH_IN.punchedAt).getTime() - new Date(byKind.LUNCH_OUT.punchedAt).getTime();
+    }
+    return Math.max(0, ms);
+  }, [punches]);
+  const wHours = Math.floor(workedMs / 3_600_000);
+  const wMins  = Math.floor((workedMs % 3_600_000) / 60_000);
+
+  const stamps: { kind: PunchKind; label: string; subHi: string; estTime?: string }[] = [
+    { kind: 'ENTRY',     label: t('entryPunch'),    subHi: t('selfieGps'),       estTime: '08:00' },
+    { kind: 'LUNCH_OUT', label: t('lunchOutLabel'), subHi: '',                   estTime: '12:30' },
+    { kind: 'LUNCH_IN',  label: t('lunchInLabel'),  subHi: t('selfieRequired'),  estTime: '13:30' },
+    { kind: 'EXIT',      label: t('exitPunch'),     subHi: '',                   estTime: '18:00' },
+  ];
+
+  return (
+    <div className="px-4 pt-4 pb-6 space-y-4">
+      {/* Header */}
+      <div className="flex items-baseline gap-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.25em] text-amber-400 font-bold">{t('timesheet')} · {todayLabel}</div>
+          <div className="text-2xl font-extrabold mt-0.5">{user.name}</div>
+          <div className="text-xs text-slate-400">हाज़िरी</div>
+        </div>
+        <div className="ml-auto text-right">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">{t('worked')}</div>
+          <div className="text-2xl font-extrabold text-amber-400">{wHours}h {String(wMins).padStart(2, '0')}m</div>
+        </div>
+      </div>
+
+      {/* Today's stamps */}
+      <div>
+        <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">{t('todaysStamps')}</div>
+        <div className="space-y-2">
+          {stamps.map((s) => {
+            const done = byKind[s.kind];
+            const isNext = !done && nextPunch === s.kind;
+            return (
+              <div
+                key={s.kind}
+                className={`rounded-xl border p-3 flex items-center gap-3 ${
+                  done
+                    ? 'bg-emerald-500/5 border-emerald-500/30'
+                    : isNext
+                      ? 'bg-amber-500/10 border-amber-500/50'
+                      : 'bg-slate-800/60 border-slate-700'
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-full grid place-items-center text-base font-bold ${
+                  done ? 'bg-emerald-500/20 text-emerald-300'
+                       : isNext ? 'bg-amber-500 text-slate-900'
+                                : 'bg-slate-700 text-slate-500'
+                }`}>
+                  {done ? '✓' : isNext ? '▶' : '○'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm text-slate-100">
+                    {s.label}{isNext && <span className="ml-2 text-[10px] font-extrabold tracking-widest text-amber-300">· {t('next')}</span>}
+                  </div>
+                  {s.subHi && <div className="text-[11px] text-slate-400">{s.subHi}</div>}
+                </div>
+                <div className="text-right">
+                  {done ? (
+                    <div className="font-mono font-bold text-emerald-300">{fmt(done.punchedAt)}</div>
+                  ) : isNext ? (
+                    <div className="font-mono font-bold text-amber-300">{t('duePrefix')} {s.estTime}</div>
+                  ) : (
+                    <div className="font-mono text-slate-500">{t('estPrefix')} {s.estTime}</div>
+                  )}
+                  {done && !done.insideGeofence && (
+                    <div className="text-[9px] text-red-300 font-bold">⚠ OUTSIDE</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Status block */}
+      <div className="rounded-xl bg-slate-900 border border-slate-700 p-3 space-y-1.5 text-xs">
+        <Row label={`📍 ${t('site')}`}     right={<span className="font-bold">Prestige Tower B</span>} />
+        <Row label={`🎯 ${t('geofence')}`} right={<span className="font-bold text-emerald-300">{t('inside')} ✓</span>} />
+        <Row label={`📶 ${t('network')}`}  right={queueN > 0
+          ? <span className="font-bold text-amber-300">{queueN} {t('inQueue')} ↻</span>
+          : <span className="font-bold text-emerald-300">online</span>} />
+      </div>
+
+      {/* Big CTA */}
+      {nextPunch && (
+        <button
+          disabled={busy === `punch:${nextPunch}`}
+          onClick={() => onPunch(nextPunch)}
+          className="w-full btn-amber py-4 rounded-2xl font-extrabold text-lg disabled:opacity-50 shadow-lg shadow-amber-500/30"
+        >
+          {nextPunch === 'ENTRY' ? t('punchEntry') :
+           nextPunch === 'LUNCH_OUT' ? t('punchLunch') :
+           nextPunch === 'LUNCH_IN' ? t('punchLunchIn') :
+           t('punchExit')}
+        </button>
+      )}
+
+      {/* Exit early link */}
+      {byKind.ENTRY && !byKind.EXIT && (
+        <button
+          onClick={() => {
+            const reason = prompt('Reason for exiting early?');
+            if (reason) alert(`(demo) recorded: ${reason}`);
+          }}
+          className="w-full py-3 rounded-xl border border-red-500/40 text-red-300 text-sm font-semibold hover:bg-red-500/10 transition"
+        >
+          {t('exitEarly')}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, right }: { label: string; right: React.ReactNode }) {
+  return <div className="flex items-center"><span className="text-slate-400">{label}</span><span className="ml-auto">{right}</span></div>;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ME TAB — profile + language + sign out
+
+function MeTab({
+  user, org, onSignOut,
+}: { user: any; org: { name: string; logoUrl: string | null }; onSignOut: () => void }) {
+  const cur = getLang();
+  const did = deviceId();
+  return (
+    <div className="px-4 pt-4 pb-6 space-y-4">
+      <div className="rounded-2xl bg-slate-900 border border-slate-700 p-4 flex items-center gap-3">
+        <div className="w-14 h-14 rounded-full bg-slate-700 grid place-items-center text-2xl font-extrabold text-amber-400">
+          {user.name?.[0] ?? '?'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-extrabold text-lg leading-tight">{user.name}</div>
+          <div className="text-xs text-slate-400 uppercase tracking-wider">{user.role}</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">{org.name}</div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-slate-900 border border-slate-700 p-4">
+        <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">{t('language')}</div>
+        <div className="flex gap-2">
+          {(['en', 'hi'] as const).map((l) => (
+            <button
+              key={l} onClick={() => setLang(l)}
+              className={`flex-1 py-3 rounded-xl text-base font-extrabold border ${cur === l ? 'bg-amber-500 text-slate-900 border-amber-400' : 'bg-slate-800 text-slate-300 border-slate-700'}`}
+            >
+              {l === 'en' ? 'English' : 'हिंदी'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-slate-900 border border-slate-700 p-4 text-xs space-y-2">
+        <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">{t('account')}</div>
+        <Row label={t('myRole')}  right={<span className="font-bold text-slate-200">{user.role}</span>} />
+        <Row label={t('mySite')}  right={<span className="font-mono text-slate-300">{user.siteId ? user.siteId.slice(0, 8) : '—'}</span>} />
+        <Row label={t('device')}  right={<span className="font-mono text-slate-400">{did.slice(0, 12)}…</span>} />
+      </div>
+
+      <button onClick={onSignOut} className="w-full py-3 rounded-xl border border-red-500/40 text-red-300 text-sm font-semibold hover:bg-red-500/10 transition">
+        {t('signOut')}
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOTTOM NAV
+
+function BottomNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+  const items: { id: Tab; label: string; icon: string }[] = [
+    { id: 'tasks', label: t('navTasks'), icon: '🔨' },
+    { id: 'time',  label: t('navTime'),  icon: '⏱' },
+    { id: 'me',    label: t('navMe'),    icon: '👤' },
+  ];
+  return (
+    <nav className="fixed bottom-0 inset-x-0 z-30 bg-slate-950/95 backdrop-blur border-t border-slate-800 grid grid-cols-3 pb-[env(safe-area-inset-bottom)]">
+      {items.map((it) => {
+        const active = tab === it.id;
+        return (
+          <button
+            key={it.id}
+            onClick={() => setTab(it.id)}
+            className={`py-2 flex flex-col items-center justify-center gap-0.5 transition ${
+              active ? 'text-amber-400' : 'text-slate-500'
+            }`}
+          >
+            <div className={`text-lg ${active ? 'scale-110' : ''}`}>{it.icon}</div>
+            <div className="text-[10px] font-bold tracking-widest">{it.label}</div>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+
 function tradePhoto(trade: string): string {
-  const x = trade.toLowerCase();
+  const x = (trade ?? '').toLowerCase();
   if (x.includes('tile') || x.includes('grout')) return 'tile-photo';
   if (x.includes('paint')) return 'paint-photo';
   if (x.includes('plaster')) return 'plaster-photo';
@@ -471,6 +813,9 @@ function fmt(ts: string | null): string {
   if (!ts) return '—';
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+function nowHHMM(): string {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 function nextActor(state: string): string {
   switch (state) {
     case 'PROOF_SUBMITTED': return 'supervisor';
@@ -481,6 +826,19 @@ function nextActor(state: string): string {
     case 'CLOSED': return 'no one — done';
     default: return state;
   }
+}
+
+function ShiftTimer({ startedAt }: { startedAt: string | null }) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const i = setInterval(() => force((n) => n + 1), 30_000);
+    return () => clearInterval(i);
+  }, []);
+  if (!startedAt) return <div className="text-3xl font-extrabold font-mono text-slate-100 mt-1">--:--</div>;
+  const ms = Math.max(0, Date.now() - new Date(startedAt).getTime());
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  return <div className="text-3xl font-extrabold font-mono text-slate-100 mt-1 tracking-tight">{String(h).padStart(2,'0')}:{String(m).padStart(2,'0')}</div>;
 }
 
 function ElapsedSince({ at }: { at: string }) {

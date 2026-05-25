@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getGeo } from './lib';
+import { t, getLang } from './i18n';
 
 type Props = {
   onCapture: (blob: Blob, meta: { lat: number; lng: number; capturedAt: string }) => void;
@@ -100,34 +101,58 @@ export function CameraCapture({ onCapture, onCancel, task, mode = 'proof', refer
     }
   }
 
+  // Header label — Hindi version paired so the mockup's "Tile laying · Proof / सबूत भेजें" reads correctly.
+  const headerEn = mode === 'selfie' ? 'Selfie' : 'Proof';
+  const headerHi = mode === 'selfie' ? 'सेल्फ़ी' : 'सबूत भेजें';
+  const cur = getLang();
+
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      <div className="p-3 text-xs text-amber-400 font-bold tracking-widest flex items-center gap-3">
-        CAPTURE PROOF
-        <span className="text-slate-400 font-mono">#{task.id.slice(0, 8)}</span>
-        <button onClick={onCancel} className="ml-auto text-slate-300">✕ Cancel</button>
+      {/* Top header */}
+      <div className="p-3 flex items-center gap-3">
+        <button onClick={onCancel} className="text-slate-300 text-base" aria-label="cancel">←</button>
+        <div className="leading-tight">
+          <div className="text-sm font-bold text-slate-100">{task.title} · {cur === 'hi' ? headerHi : headerEn}</div>
+          <div className="text-[10px] text-slate-400">सबूत भेजें · #{task.id.slice(0, 8)}</div>
+        </div>
+        <button onClick={onCancel} className="ml-auto text-slate-400 text-xs">{t('cancel')}</button>
       </div>
 
       <div className="relative flex-1 overflow-hidden">
         <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+
+        {/* SITE LOCKED · GEO ✓ badge — top-center pill */}
+        <div className="absolute top-3 inset-x-0 flex justify-center pointer-events-none">
+          <div className={`px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wider flex items-center gap-1.5 shadow-lg ${
+            geo ? 'bg-slate-900/85 text-amber-300 border border-amber-400/70' : 'bg-slate-900/85 text-slate-400 border border-slate-700'
+          }`}>
+            📍 {t('siteLocked')} · {geo ? t('geoOk') : 'GPS …'}
+          </div>
+        </div>
+
         {/* corner brackets */}
         <div className="absolute inset-6 pointer-events-none">
-          <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-amber-400" />
-          <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-amber-400" />
-          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-amber-400" />
-          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-amber-400" />
+          <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-amber-400 rounded-tl" />
+          <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-amber-400 rounded-tr" />
+          <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-amber-400 rounded-bl" />
+          <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-amber-400 rounded-br" />
         </div>
+
+        {/* centre cross-hair */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 pointer-events-none">
+          <div className="absolute top-1/2 left-0 right-0 h-px bg-amber-400/60" />
+          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-amber-400/60" />
+        </div>
+
         {/* reference image overlay (top-right) */}
         {referenceImageUrl && (
           <button
             onClick={() => setShowRef((s) => !s)}
-            className="absolute top-3 right-3 bg-black/70 border-2 border-amber-400 rounded overflow-hidden shadow-lg"
-            style={{ width: 110, height: 80 }}
+            className="absolute top-12 right-3 bg-black/70 border-2 border-amber-400 rounded overflow-hidden shadow-lg"
+            style={{ width: 100, height: 72 }}
           >
             <img src={referenceImageUrl} alt="reference" className="w-full h-full object-cover" />
-            <div className="absolute bottom-0 inset-x-0 text-[9px] font-bold bg-amber-400 text-slate-900 tracking-wider">
-              REFERENCE
-            </div>
+            <div className="absolute bottom-0 inset-x-0 text-[9px] font-bold bg-amber-400 text-slate-900 tracking-wider">REF</div>
           </button>
         )}
         {showRef && referenceImageUrl && (
@@ -139,15 +164,23 @@ export function CameraCapture({ onCapture, onCancel, task, mode = 'proof', refer
             <div className="absolute top-3 right-3 text-amber-300 text-xs font-bold">tap to close</div>
           </div>
         )}
-        {/* HUD */}
-        <div className="absolute bottom-3 left-3 right-3 text-[11px] font-mono text-amber-300 bg-black/60 rounded p-2">
-          {geo ? (
-            <>
-              GPS {geo.coords.latitude.toFixed(5)}, {geo.coords.longitude.toFixed(5)} · ±{Math.round(geo.coords.accuracy)}m<br />
-              {task.location} · {new Date().toLocaleTimeString()}
-            </>
-          ) : 'waiting for GPS…'}
+
+        {/* Bottom watermark-preview HUD — TASK ID · worker date · GPS · accuracy.
+            Mirrors what gets burned into the photo on shutter. */}
+        <div className="absolute bottom-3 left-3 right-3 text-[11px] font-mono text-amber-300 bg-black/70 rounded-lg p-2.5 border border-amber-400/30">
+          <div className="text-[10px] font-bold tracking-widest text-amber-400">
+            TASK #{task.id.slice(0, 8)} · {(task as any).trade ? String((task as any).trade).toUpperCase() : 'PROOF'}
+          </div>
+          <div className="text-slate-200 mt-0.5">
+            {task.location} · {new Date().toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </div>
+          <div className="text-slate-300 text-[10px] mt-0.5">
+            {geo
+              ? <>{geo.coords.latitude.toFixed(4)}°N {geo.coords.longitude.toFixed(4)}°E · ±{Math.round(geo.coords.accuracy)}m</>
+              : 'waiting for GPS…'}
+          </div>
         </div>
+
         {err && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-600 text-white p-3 rounded">{err}</div>}
         {blurWarn && (
           <div className="absolute top-20 left-3 right-3 bg-red-600 text-white p-3 rounded text-sm font-semibold flex items-center gap-2">
@@ -158,16 +191,18 @@ export function CameraCapture({ onCapture, onCancel, task, mode = 'proof', refer
         )}
       </div>
 
-      <div className="p-4 grid grid-cols-3 gap-3">
-        <div />
+      {/* Bottom control bar — FLASH · shutter · VIDEO */}
+      <div className="p-4 grid grid-cols-3 gap-3 items-center">
+        <button className="text-[11px] tracking-widest font-bold text-slate-400 hover:text-amber-300">⚡ {t('flash')}</button>
         <button
           disabled={!geo || busy}
           onClick={snap}
-          className="aspect-square rounded-full btn-amber text-lg disabled:opacity-50"
+          className="aspect-square w-20 mx-auto rounded-full border-4 border-amber-400 bg-white disabled:opacity-40 shadow-xl shadow-amber-500/40 active:scale-95 transition"
+          aria-label="shutter"
         >
-          {busy ? '…' : '●'}
+          {busy && <span className="text-slate-900 text-lg">…</span>}
         </button>
-        <div />
+        <button className="text-[11px] tracking-widest font-bold text-slate-400 hover:text-amber-300">🎥 {t('video')}</button>
       </div>
     </div>
   );
