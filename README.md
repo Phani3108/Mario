@@ -33,7 +33,30 @@ Launch market: **Hyderabad.** Expandable to any developer in any city.
 
 ---
 
-## 🚀 Quick start (one command)
+## 🌐 Live demo
+
+**[mickey-ashy.vercel.app](https://mickey-ashy.vercel.app)** runs the web app with the **DEMO MODE** flag on — there is no backend wired up, but the entire UI is functional. Five seeded Hyderabad projects, 34 tasks across every state, working +New Task, working approval chain, working logo upload (in-browser only). Look for the green `DEMO MODE` chip in the top bar.
+
+### Deploying your own to Vercel
+
+The Next.js dashboard lives at `apps/web/`, not the repo root. The committed `vercel.json` already handles this — connect the repo in Vercel, leave **Root Directory** blank, and Vercel will run:
+
+```
+pnpm install --frozen-lockfile && pnpm --filter @siteflow/web build
+```
+
+with `NEXT_PUBLIC_DEMO=true` baked into the build. To point the deployed web app at a real API instead, set these env vars in the Vercel project:
+
+| Var                       | Value                                  |
+|---------------------------|----------------------------------------|
+| `NEXT_PUBLIC_DEMO`        | `false`                                |
+| `NEXT_PUBLIC_API_URL`     | `https://api.yourdomain.com`           |
+
+(If your Vercel project was previously configured to deploy `apps/field`, change the project's **Root Directory** back to empty so `vercel.json` at the repo root takes over.)
+
+---
+
+## 🚀 Quick start (one command, local dev)
 
 ```sh
 # Requires: Node 22, pnpm 9, Docker Desktop

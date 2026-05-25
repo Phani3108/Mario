@@ -2,8 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MickeyMark } from '../../components/MickeyLogo';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { apiFetch, isDemo } from '../../lib/api';
 
 type Task = {
   id: string;
@@ -83,9 +82,9 @@ export default function ApprovalsPage() {
       if (cachedUser) setUser(cachedUser);
 
       const [pendingRes, sitesRes, orgRes] = await Promise.all([
-        fetch(`${API}/approvals/pending`, { headers: headers() }),
-        fetch(`${API}/sites`, { headers: headers() }),
-        fetch(`${API}/orgs/me`, { headers: headers() }),
+        apiFetch(`/approvals/pending`, { headers: headers() }),
+        apiFetch(`/sites`, { headers: headers() }),
+        apiFetch(`/orgs/me`, { headers: headers() }),
       ]);
       if (pendingRes.status === 401 || sitesRes.status === 401) {
         localStorage.removeItem('sf_token');
@@ -97,7 +96,7 @@ export default function ApprovalsPage() {
       const sitesMapped: Site[] = siteRows.map((s) => ({ id: s.id, label: s.name, active: true }));
       setTasks(pendingTasks);
       setSitesList(sitesMapped);
-      if (!activeSite && sitesMapped.length > 0) setActiveSite(sitesMapped[0].id);
+      if (!activeSite && sitesMapped.length > 0 && sitesMapped[0]) setActiveSite(sitesMapped[0].id);
       if (orgRes.ok) {
         const data: { org: { name: string }; logoUrl: string | null } = await orgRes.json();
         setOrgInfo({ name: data.org?.name ?? 'Mickey', logoUrl: data.logoUrl ?? null });
@@ -116,7 +115,7 @@ export default function ApprovalsPage() {
       const body = kind === 'approve'
         ? { taskId }
         : { taskId, reason: prompt('Reject reason?') ?? 'no reason given' };
-      const res = await fetch(`${API}/approvals/${kind}`, {
+      const res = await apiFetch(`/approvals/${kind}`, {
         method: 'POST', headers: headers(), body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? 'failed');
@@ -190,6 +189,11 @@ export default function ApprovalsPage() {
             <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold">
               ⚠ {tasks.length} pending
             </span>
+            {isDemo() && (
+              <span title="No backend connected — UI is mocked end-to-end." className="hidden md:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold text-[10px] tracking-wider">
+                DEMO MODE
+              </span>
+            )}
             <span className="hidden md:inline-flex px-2 py-1 rounded-md bg-amber-500 text-slate-900 font-bold">
               FIELD: hi-vis
             </span>
@@ -609,9 +613,9 @@ function TasksBoard({
     setErr(null);
     try {
       const [tasksRes, usersRes, sitesRes] = await Promise.all([
-        fetch(`${API}/tasks`, { headers: headers() }),
-        fetch(`${API}/users`, { headers: headers() }),
-        fetch(`${API}/sites`, { headers: headers() }),
+        apiFetch(`/tasks`, { headers: headers() }),
+        apiFetch(`/users`, { headers: headers() }),
+        apiFetch(`/sites`, { headers: headers() }),
       ]);
       if (tasksRes.ok) setRows(await tasksRes.json());
       if (usersRes.ok) setUsers(await usersRes.json());
@@ -632,7 +636,7 @@ function TasksBoard({
     const prev = rows;
     setRows((cur) => cur.map((t) => t.id === taskId ? { ...t, assigneeUserId } : t));
     try {
-      const res = await fetch(`${API}/tasks/${taskId}/assign`, {
+      const res = await apiFetch(`/tasks/${taskId}/assign`, {
         method: 'PATCH', headers: headers(),
         body: JSON.stringify({ assigneeUserId }),
       });
@@ -765,8 +769,8 @@ function NewTaskModal({
   useEffect(() => {
     (async () => {
       const [s, p] = await Promise.all([
-        fetch(`${API}/sites`, { headers: headers() }),
-        fetch(`${API}/sop`,   { headers: headers() }),
+        apiFetch(`/sites`, { headers: headers() }),
+        apiFetch(`/sop`,   { headers: headers() }),
       ]);
       if (s.ok) {
         const ss = await s.json();
@@ -789,7 +793,7 @@ function NewTaskModal({
     if (!resolvedSiteId) { setErr('pick a project'); return; }
     setBusy(true); setErr(null);
     try {
-      const res = await fetch(`${API}/tasks`, {
+      const res = await apiFetch(`/tasks`, {
         method: 'POST',
         headers: headers(),
         body: JSON.stringify({
@@ -920,7 +924,7 @@ function TimesheetsToday({ headers }: { headers: () => HeadersInit }) {
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch(`${API}/timesheets/today`, { headers: headers() });
+        const r = await apiFetch(`/timesheets/today`, { headers: headers() });
         if (!r.ok) throw new Error((await r.json()).error ?? 'failed');
         setRows(await r.json());
       } catch (e: any) { setErr(e.message); }
@@ -1059,7 +1063,7 @@ function SopLibrary({ headers, canCreate }: { headers: () => HeadersInit; canCre
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/sop`, { headers: headers() });
+      const res = await apiFetch(`/sop`, { headers: headers() });
       setItems(res.ok ? await res.json() : []);
     } finally { setLoading(false); }
   }, [headers]);
@@ -1166,7 +1170,7 @@ function NewSopModal({ headers, onClose, onSaved }: { headers: () => HeadersInit
     if (title.length < 2 || instructions.length < 5) { setErr('Title and instructions required'); return; }
     setBusy(true); setErr(null);
     try {
-      const res = await fetch(`${API}/sop`, {
+      const res = await apiFetch(`/sop`, {
         method: 'POST', headers: headers(),
         body: JSON.stringify({ trade, title, version: 'v1', instructions, sampleRatePerN, requiredTests: [...required], refMediaS3Key: null }),
       });
@@ -1263,7 +1267,7 @@ function ReworkLog({ headers }: { headers: () => HeadersInit }) {
     (async () => {
       setLoading(true);
       try {
-        const r = await fetch(`${API}/tasks`, { headers: headers() });
+        const r = await apiFetch(`/tasks`, { headers: headers() });
         const all: Task[] = r.ok ? await r.json() : [];
         const live = all.filter((t) => t.state === 'REWORK' || t.state === 'REJECTED');
         setRows([...MOCK_REWORK_FIXTURES, ...live]);
@@ -1378,19 +1382,19 @@ function FinanceReports({ headers, canEdit }: { headers: () => HeadersInit; canE
   useEffect(() => {
     (async () => {
       const [c, r] = await Promise.all([
-        fetch(`${API}/finance/contracts`, { headers: headers() }).then((x) => x.ok ? x.json() : []),
-        fetch(`${API}/finance/rates`, { headers: headers() }).then((x) => x.ok ? x.json() : []),
+        apiFetch(`/finance/contracts`, { headers: headers() }).then((x) => x.ok ? x.json() : []),
+        apiFetch(`/finance/rates`, { headers: headers() }).then((x) => x.ok ? x.json() : []),
       ]);
       setContracts(c); setRates(r);
       if (c[0]?.siteId) {
-        const p = await fetch(`${API}/finance/site-pnl/${c[0].siteId}`, { headers: headers() });
+        const p = await apiFetch(`/finance/site-pnl/${c[0].siteId}`, { headers: headers() });
         if (p.ok) setPnl(await p.json());
       }
     })();
   }, [headers]);
 
   const downloadPayroll = async () => {
-    const res = await fetch(`${API}/finance/payroll-csv?from=${from}&to=${to}`, { headers: headers() });
+    const res = await apiFetch(`/finance/payroll-csv?from=${from}&to=${to}`, { headers: headers() });
     if (!res.ok) return alert('Failed: ' + res.status);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -1400,7 +1404,7 @@ function FinanceReports({ headers, canEdit }: { headers: () => HeadersInit; canE
   };
 
   const setRate = async (role: string, hourlyRate: number) => {
-    const res = await fetch(`${API}/finance/rates`, {
+    const res = await apiFetch(`/finance/rates`, {
       method: 'POST', headers: headers(),
       body: JSON.stringify({ role, hourlyRate, currency: 'INR' }),
     });
@@ -1608,7 +1612,7 @@ function SitesAdmin({ headers, canCreate }: { headers: () => HeadersInit; canCre
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/sites`, { headers: headers() });
+      const r = await apiFetch(`/sites`, { headers: headers() });
       setRows(r.ok ? await r.json() : []);
     } finally { setLoading(false); }
   }, [headers]);
@@ -1669,7 +1673,7 @@ function NewSiteModal({ headers, onClose, onSaved }: { headers: () => HeadersIni
   async function save() {
     setBusy(true); setErr(null);
     try {
-      const r = await fetch(`${API}/sites`, {
+      const r = await apiFetch(`/sites`, {
         method: 'POST', headers: headers(),
         body: JSON.stringify({
           name, kind, address: address || null,
@@ -1750,8 +1754,8 @@ function PeopleAdmin({ headers, canCreate }: { headers: () => HeadersInit; canCr
     setLoading(true);
     try {
       const [u, s] = await Promise.all([
-        fetch(`${API}/users?all=1`, { headers: headers() }).then((r) => r.ok ? r.json() : []),
-        fetch(`${API}/sites`, { headers: headers() }).then((r) => r.ok ? r.json() : []),
+        apiFetch(`/users?all=1`, { headers: headers() }).then((r) => r.ok ? r.json() : []),
+        apiFetch(`/sites`, { headers: headers() }).then((r) => r.ok ? r.json() : []),
       ]);
       setRows(u); setSites(s);
     } finally { setLoading(false); }
@@ -1842,7 +1846,7 @@ function NewEmployeeModal({ sites, headers, onClose, onSaved }: {
   async function save() {
     setBusy(true); setErr(null);
     try {
-      const r = await fetch(`${API}/users`, {
+      const r = await apiFetch(`/users`, {
         method: 'POST', headers: headers(),
         body: JSON.stringify({
           name, role,
@@ -1953,7 +1957,7 @@ function WhatsAppOutbox({ headers }: { headers: () => HeadersInit }) {
     (async () => {
       setLoading(true);
       try {
-        const r = await fetch(`${API}/whatsapp/outbox`, { headers: headers() });
+        const r = await apiFetch(`/whatsapp/outbox`, { headers: headers() });
         setRows(r.ok ? await r.json() : []);
       } finally { setLoading(false); }
     })();

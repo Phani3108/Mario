@@ -2,8 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MickeyMark } from '../../components/MickeyLogo';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { apiFetch } from '../../lib/api';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -47,7 +46,7 @@ export default function OnboardPage() {
   async function sendSignupOtp() {
     setBusy(true); setErr(null);
     try {
-      const res = await fetch(`${API}/auth/otp/request`, {
+      const res = await apiFetch(`/auth/otp/request`, {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ phone, purpose: 'SIGNUP' }),
       });
@@ -61,7 +60,7 @@ export default function OnboardPage() {
   async function verifySignupOtp() {
     setBusy(true); setErr(null);
     try {
-      const res = await fetch(`${API}/auth/otp/verify`, {
+      const res = await apiFetch(`/auth/otp/verify`, {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ phone, code, purpose: 'SIGNUP' }),
       });
@@ -77,7 +76,7 @@ export default function OnboardPage() {
     setBusy(true); setErr(null);
     try {
       // 1) create org + founder
-      const res = await fetch(`${API}/orgs/signup`, {
+      const res = await apiFetch(`/orgs/signup`, {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           phone, signupToken, founderName, email: email || undefined,
@@ -92,7 +91,7 @@ export default function OnboardPage() {
 
       // 2) upload logo if provided
       if (logoFile) {
-        const presign = await fetch(`${API}/orgs/me/logo-presign`, {
+        const presign = await apiFetch(`/orgs/me/logo-presign`, {
           method: 'POST',
           headers: { 'content-type': 'application/json', authorization: `Bearer ${data.token}` },
           body: JSON.stringify({ contentType: logoFile.type }),
@@ -110,7 +109,7 @@ export default function OnboardPage() {
     if (!token) return;
     setBusy(true); setErr(null);
     try {
-      const res = await fetch(`${API}/sites`, {
+      const res = await apiFetch(`/sites`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -133,7 +132,7 @@ export default function OnboardPage() {
     try {
       for (const inv of invites) {
         if (!inv.phone || inv.phone.length < 8) continue;
-        await fetch(`${API}/users`, {
+        await apiFetch(`/users`, {
           method: 'POST',
           headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
           body: JSON.stringify({

@@ -2,8 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MickeyMark } from '../components/MickeyLogo';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { apiFetch } from '../lib/api';
 // Show dev preset login on localhost or when explicitly enabled. Production builds
 // served from a real host with NEXT_PUBLIC_DEV_AUTH unset will hide it.
 const DEV_AUTH = true; // Force dev login for all environments
@@ -39,7 +38,7 @@ export default function LoginPage() {
     e.preventDefault();
     setBusy(true); setErr(null);
     try {
-      const res = await fetch(`${API}/auth/otp/verify`, {
+      const res = await apiFetch(`/auth/otp/verify`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ phone, code, purpose: 'LOGIN' }),
@@ -57,7 +56,7 @@ export default function LoginPage() {
     e.preventDefault();
     setBusy(true); setErr(null);
     try {
-      const res = await fetch(`${API}/auth/login`, {
+      const res = await apiFetch(`/auth/login`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ phoneOrEmail: devId, devCode: '000000' }),

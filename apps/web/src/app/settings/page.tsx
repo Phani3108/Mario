@@ -2,8 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MickeyMark } from '../../components/MickeyLogo';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { apiFetch } from '../../lib/api';
 
 type Settings = {
   accentColor: string;
@@ -32,7 +31,7 @@ export default function SettingsPage() {
     if (!token) { router.replace('/'); return; }
     setErr(null);
     try {
-      const r = await fetch(`${API}/orgs/me`, { headers: headers() });
+      const r = await apiFetch(`/orgs/me`, { headers: headers() });
       if (r.status === 401) { router.replace('/'); return; }
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? 'failed to load');
       const data = await r.json();
@@ -49,7 +48,7 @@ export default function SettingsPage() {
   async function uploadLogo(file: File) {
     setBusy(true); setErr(null); setInfo(null);
     try {
-      const presign = await fetch(`${API}/orgs/me/logo-presign`, {
+      const presign = await apiFetch(`/orgs/me/logo-presign`, {
         method: 'POST', headers: headers(),
         body: JSON.stringify({ contentType: file.type }),
       });
@@ -69,7 +68,7 @@ export default function SettingsPage() {
   async function saveSettings(patch: Partial<Settings>) {
     setBusy(true); setErr(null); setInfo(null);
     try {
-      const r = await fetch(`${API}/orgs/me`, {
+      const r = await apiFetch(`/orgs/me`, {
         method: 'PATCH', headers: headers(), body: JSON.stringify(patch),
       });
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? 'save failed');
