@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: siteflow-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: siteflow
+      POSTGRES_PASSWORD: siteflow
+      POSTGRES_DB: siteflow
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./.pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U siteflow -d siteflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: siteflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    container_name: siteflow-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: siteflow
+      MINIO_ROOT_PASSWORD: siteflowsecret
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console
+    volumes:
+      - ./.minio-data:/data
+
+  minio-bucket-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set local http://minio:9000 siteflow siteflowsecret; do echo 'waiting for minio'; sleep 2; done;
+      /usr/bin/mc mb -p local/siteflow-evidence || true;
+      /usr/bin/mc anonymous set download local/siteflow-evidence || true;
+      echo 'bucket ready';
+      "
