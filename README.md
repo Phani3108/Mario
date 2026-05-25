@@ -101,17 +101,23 @@ Set `DEV_AUTH=false` to lock the door and require the real MSG91 OTP path.
 
 ### What each persona sees (role-filtered dashboards)
 
-The sidebar narrows to the persona's actual job — nobody gets a tab they can't act on.
+The sidebar narrows to the persona's actual job — nobody gets a tab they can't act on. Each persona has a **purpose-built default landing view** as well, not just a filtered nav.
 
 | Persona | Default landing | Sidebar |
 |---|---|---|
-| **Employee** | My tasks | My tasks |
-| **Supervisor** | Approvals | Approvals · Tasks · Timesheets · People · Rework |
-| **Quality** | Approvals | Approvals · SOP library · Rework · Tasks |
-| **Manager** | Approvals | Approvals · Tasks · Timesheets · SOP · Rework · Reports · Sites · People · Outbox |
-| **Accounts** | Timesheets | Timesheets · Reports · Outbox |
-| **CEO** | Reports | Reports · Sites · People · Outbox · Tasks · Approvals |
-| **Client** | Approvals | Approvals · Reports |
+| **Employee**   | My tasks               | My tasks |
+| **Supervisor** | Approvals (mobile cards) | Approvals · Tasks · Timesheets · People · Rework |
+| **Quality**    | Approvals (table + SOP REFERENCE side-panel + ⇧A/⇧R/J/K shortcuts) | Approvals · SOP library · Rework · Tasks |
+| **Manager**    | Command center (KPIs + portfolio + escalations + activity) | Command · Approvals · Tasks · Timesheets · SOP · Rework · Payroll · Reports · Sites · People · Outbox |
+| **Accounts**   | Payroll & finance (KPIs + employee roll-up + rate editor + CSV export) | Payroll · Timesheets · Reports · People · Outbox |
+| **CEO**        | Executive overview (portfolio P&L · burn · on-schedule · quality reject %) | Command · Payroll · Reports · Sites · People · Outbox · Tasks · Approvals |
+| **Client**     | `/client` portal (auto-redirected from `/approvals`) | Overview · Milestones · Evidence gallery · Snag list · Quality reports |
+
+**Bilingual everywhere.** `EN | हिं` toggle in every header (landing, dashboard, settings, onboard, client portal) — toggle on the worker phone, the desk dashboard speaks Hindi too (same `sf_lang` localStorage key).
+
+**Dark + light theme.** `☀ | ☾` toggle next to the language toggle. Persists per-browser. The Quality dashboard in particular has the dark variant from mockup #7.
+
+**+ New task is everywhere.** Every role except Client can author tasks — the modal POSTs `/tasks` and is summonable from the top-bar button on every dashboard, plus inline buttons inside each role view.
 
 ### Adding a project
 

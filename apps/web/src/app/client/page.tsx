@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarioMark } from '../../components/MarioLogo';
 import { LangToggle } from '../../components/LangToggle';
+import { ThemeToggle } from '../../components/ThemeToggle';
 import { apiFetch, isDemo } from '../../lib/api';
 import { useT } from '../../lib/i18n';
 import { testForTrade } from '../approvals/quality-tests';
@@ -200,7 +201,7 @@ export default function ClientPortal() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-slate-900 flex flex-col">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
       {/* Top bar */}
       <header className="bg-slate-950 text-slate-100 border-b border-slate-800 sticky top-0 z-20">
         <div className="px-5 py-3 flex items-center gap-3">
@@ -223,6 +224,7 @@ export default function ClientPortal() {
               </span>
             )}
             <LangToggle tone="dark" />
+            <ThemeToggle tone="dark" />
             <span className="text-slate-300 hidden sm:inline">{user?.name ?? '—'}</span>
             <button onClick={logout} className="text-amber-400 hover:text-amber-300 underline text-xs">
               {t('signOut')}

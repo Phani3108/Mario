@@ -5,6 +5,7 @@ import { MarioMark } from '../../components/MarioLogo';
 import { apiFetch, isDemo } from '../../lib/api';
 import { useT } from '../../lib/i18n';
 import { LangToggle } from '../../components/LangToggle';
+import { ThemeToggle } from '../../components/ThemeToggle';
 
 // Detect demo mode at module load so the JSX below can branch on it.
 // `isDemo()` is safe to call on the server (returns false) and on the client
@@ -174,6 +175,7 @@ export default function OnboardPage() {
         </div>
         <div className="flex items-center gap-3">
           <LangToggle tone="dark" />
+          <ThemeToggle tone="dark" />
           <a href="/" className="text-xs text-slate-500 hover:text-amber-300">{t('back')}</a>
         </div>
       </header>

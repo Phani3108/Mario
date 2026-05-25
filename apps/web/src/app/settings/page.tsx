@@ -5,6 +5,7 @@ import { MarioMark } from '../../components/MarioLogo';
 import { apiFetch } from '../../lib/api';
 import { useT } from '../../lib/i18n';
 import { LangToggle } from '../../components/LangToggle';
+import { ThemeToggle } from '../../components/ThemeToggle';
 
 type Settings = {
   accentColor: string;
@@ -85,7 +86,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-slate-900">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       <header className="bg-slate-950 text-slate-100 border-b border-slate-800">
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center gap-3">
           <a href="/approvals" className="flex items-center gap-3">
@@ -94,6 +95,7 @@ export default function SettingsPage() {
           </a>
           <div className="ml-auto flex items-center gap-3">
             <LangToggle tone="dark" />
+            <ThemeToggle tone="dark" />
             <a href="/approvals" className="text-xs text-amber-400 hover:text-amber-300 underline">{t('back')}</a>
           </div>
         </div>

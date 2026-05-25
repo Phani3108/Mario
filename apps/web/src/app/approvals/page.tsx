@@ -5,6 +5,7 @@ import { MarioMark } from '../../components/MarioLogo';
 import { apiFetch, isDemo } from '../../lib/api';
 import { useT, localizedRole } from '../../lib/i18n';
 import { LangToggle } from '../../components/LangToggle';
+import { ThemeToggle } from '../../components/ThemeToggle';
 import { QualityView } from './QualityView';
 import { SupervisorView } from './SupervisorView';
 import { ManagerView } from './ManagerView';
@@ -236,7 +237,7 @@ export default function ApprovalsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-slate-900 flex flex-col">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
       {/* ---------- Top bar (dark, mock-parity) ---------- */}
       <header className="bg-slate-950 text-slate-100 border-b border-slate-800 sticky top-0 z-30">
         <div className="px-4 sm:px-6 py-3 flex items-center gap-3">
@@ -273,6 +274,7 @@ export default function ApprovalsPage() {
               {user ? `${user.name} · ${localizedRole(user.role)}` : ''}
             </span>
             <LangToggle tone="dark" className="hidden md:inline-flex" />
+            <ThemeToggle tone="dark" className="hidden md:inline-flex" />
             {user?.role !== 'client' && (
               <button onClick={() => setShowNewTask(true)} className="hidden sm:inline-flex px-2 py-1 rounded-md bg-amber-500 text-slate-900 font-bold text-[11px] hover:bg-amber-400">
                 {t('newTask')}
@@ -295,7 +297,7 @@ export default function ApprovalsPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* ---------- Sidebar (desktop) ---------- */}
-        <aside className="hidden md:flex w-56 border-r border-slate-200 bg-white flex-col p-4 text-sm">
+        <aside className="hidden md:flex w-56 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col p-4 text-sm">
           <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">{t('navWorkflow')}</div>
           {navForRole(user?.role).map((n) => {
             const active = n.key === view;
@@ -653,19 +655,19 @@ export default function ApprovalsPage() {
           {selected.size > 0 && (
             <div className="hidden md:flex sticky bottom-0 z-20 bg-slate-50/95 backdrop-blur border-t border-slate-200 px-6 py-3 items-center gap-3 sf-fade-up">
               <div className="text-xs text-slate-700">
-                <b className="text-amber-700">{selected.size} selected</b> of {visible.length}
+                <b className="text-amber-700">{selected.size}</b> {t('qSelectedOf')} {visible.length}
               </div>
               <button
                 onClick={bulkApprove}
                 className="px-3 py-1.5 rounded-md bg-emerald-600 text-white font-semibold text-xs hover:bg-emerald-700"
               >
-                Approve all
+                {t('approveAll')}
               </button>
               <button
                 onClick={() => setSelected(new Set())}
                 className="px-3 py-1.5 rounded-md bg-white border border-slate-200 text-slate-600 font-semibold text-xs"
               >
-                Clear
+                {t('clearSelection')}
               </button>
             </div>
           )}
@@ -715,6 +717,7 @@ function MyTasksView({
   user: { name: string; role: string; siteId: string | null } | null;
   onOpenNewTask?: () => void;
 }) {
+  const t = useT();
   const [rows, setRows] = useState<Task[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
@@ -749,18 +752,18 @@ function MyTasksView({
   return (
     <div className="p-4 sm:p-6 sf-fade-up">
       <div className="flex items-center gap-3 mb-1 flex-wrap">
-        <div className="text-xl font-extrabold">My tasks</div>
+        <div className="text-xl font-extrabold">{t('myTasksTitle')}</div>
         <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">{rows.length}</span>
         <div className="ml-auto flex items-center gap-2">
           {onOpenNewTask && (
             <button
               onClick={onOpenNewTask}
               className="px-3 py-1.5 rounded-md bg-amber-500 text-slate-900 font-bold text-xs hover:bg-amber-400"
-            >+ New task</button>
+            >{t('newTask')}</button>
           )}
           <a href="http://localhost:5174" target="_blank" rel="noopener noreferrer"
              className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50">
-            Open field app →
+            {t('openFieldApp')}
           </a>
         </div>
       </div>
@@ -771,15 +774,15 @@ function MyTasksView({
       {rows.length === 0 && (
         <div className="p-10 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
           <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-50 grid place-items-center text-3xl mb-3">✓</div>
-          <div className="text-slate-700 font-semibold">No tasks on your plate.</div>
-          <div className="text-xs text-slate-500 mt-1">Your supervisor will assign work soon.</div>
+          <div className="text-slate-700 font-semibold">{t('noTasksPlate')}</div>
+          <div className="text-xs text-slate-500 mt-1">{t('noTasksSub')}</div>
         </div>
       )}
 
       {(['act', 'wait', 'done'] as const).map((g) => groups[g].length === 0 ? null : (
         <section key={g} className="mb-5">
           <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">
-            {g === 'act' ? 'Action needed' : g === 'wait' ? 'Awaiting approval' : 'Done'}
+            {g === 'act' ? t('groupActNeeded') : g === 'wait' ? t('groupAwaiting') : t('groupDone')}
             <span className="ml-2 text-slate-400">· {groups[g].length}</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -860,6 +863,7 @@ type PunchRow = {
 function TasksBoard({
   headers, canAssign,
 }: { headers: () => HeadersInit; canAssign: boolean }) {
+  const t = useT();
   const [rows, setRows] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -931,7 +935,7 @@ function TasksBoard({
           <button
             onClick={() => setShowNew(true)}
             className="ml-auto px-3 py-1.5 rounded-md bg-amber-500 text-slate-900 font-bold text-xs hover:bg-amber-400"
-          >+ New task</button>
+          >{t('newTask')}</button>
         )}
       </div>
       {err && <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{err}</div>}

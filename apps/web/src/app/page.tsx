@@ -5,6 +5,7 @@ import { MarioMark } from '../components/MarioLogo';
 import { apiFetch } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { LangToggle } from '../components/LangToggle';
+import { ThemeToggle } from '../components/ThemeToggle';
 // Show dev preset login on localhost or when explicitly enabled. Production builds
 // served from a real host with NEXT_PUBLIC_DEV_AUTH unset will hide it.
 const DEV_AUTH = true; // Force dev login for all environments
@@ -112,6 +113,7 @@ export default function LoginPage() {
           </a>
           <div className="ml-auto flex items-center gap-2 text-xs">
             <LangToggle tone="dark" />
+            <ThemeToggle tone="dark" />
             <span className="hidden sm:inline-flex px-2 py-1 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30 font-semibold">DEV BUILD</span>
           </div>
         </div>
