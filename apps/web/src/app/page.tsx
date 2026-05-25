@@ -33,23 +33,7 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  async function requestOtp(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true); setErr(null); setInfo(null);
-    try {
-      const res = await fetch(`${API}/auth/otp/request`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ phone, purpose: 'LOGIN' }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'could not send code');
-      const data = await res.json();
-      setStep('code');
-      if (data.devCode) { setCode(String(data.devCode)); setInfo(`DEV: code is ${data.devCode} (auto-filled).`); }
-      else setInfo('Code sent. Check your WhatsApp / SMS.');
-    } catch (e: any) { setErr(e.message); }
-    finally { setBusy(false); }
-  }
+  // OTP login is disabled; requestOtp is unused.
 
   async function verifyOtp(e: React.FormEvent) {
     e.preventDefault();
@@ -162,7 +146,7 @@ export default function LoginPage() {
         {/* Right — login card */}
         <div className="sf-fade-up" style={{ animationDelay: '0.15s' }}>
           <form
-            onSubmit={step === 'devLogin' ? devLogin : step === 'phone' ? requestOtp : verifyOtp}
+            onSubmit={devLogin}
             className="relative w-full max-w-md mx-auto bg-slate-900/80 backdrop-blur border border-slate-700/80 rounded-2xl p-6 sm:p-7 shadow-2xl"
           >
             <span className="absolute -top-px -left-px w-8 h-8 border-t-2 border-l-2 border-amber-400 rounded-tl-2xl" />
@@ -207,10 +191,7 @@ export default function LoginPage() {
                   className="w-full px-3.5 py-3 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 placeholder:text-slate-600 tracking-[0.5em] text-center text-lg focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-amber-500/60 transition"
                   placeholder="------"
                 />
-                <button type="button" onClick={() => { setStep('phone'); setCode(''); setErr(null); }}
-                  className="mt-2 text-xs text-slate-400 hover:text-amber-300">
-                  ← change phone number
-                </button>
+                {/* OTP flow is disabled; change phone button removed. */}
               </>
             )}
 

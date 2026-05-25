@@ -120,7 +120,6 @@ function Login({ onLogin }: { onLogin: (token: string, user: any) => void }) {
     </div>
   );
 }
-}
 
 type CamRequest =
   | { kind: 'proof'; task: Task }
